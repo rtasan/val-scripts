@@ -13,7 +13,7 @@ from pathlib import Path
 from configparser import BasicInterpolation, ConfigParser
 
 
-# TODO FIX THE FUCKING LOGGER
+# TODO FIX THE LOGGER
 # TODO FIX NODE POSITIONS
 
 # // ------------------------------------
@@ -128,14 +128,9 @@ def cacheCheck():
 
 def readJSON(f: str):
     if "\\Engine" in f.__str__():
-        # print(f.__str__())
         f = f.__str__().replace("\Engine", "\\Engine\\Content")
-        # print(f)
         if "ContentMaterials" in f:
-            # 'C:\Users\ogulc\Desktop\valorant\val-scripts\export\Engine\Content\Engine\ContentMaterials\DefaultMaterial.json'
-            # "C:\Users\ogulc\Desktop\valorant\val-scripts\export\Engine\Content\EngineMaterials\DefaultMaterial.json"
             f = f.replace("Engine\\ContentMaterials", "EngineMaterials")
-            # print(f)
 
     with open(f, 'r') as jsonFile:
         data = jsonFile.read()
@@ -287,12 +282,12 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON: dict, override: bool = Fals
     Normal_A_Map = False
     Normal_B_Map = False
 
-    Blend_Power = False
+    # Blend_Power = False
 
     Diffuse_Alpha_Threshold = False
-    Diffuse_Clip_Value = False
-    Diffuse_Alpha_Emission = False
-    DFEmi = False
+    # Diffuse_Clip_Value = False
+    # Diffuse_Alpha_Emission = False
+    # DFEmi = False
 
     DF_ALPHA = False
     usesAlpha = False
@@ -304,12 +299,6 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON: dict, override: bool = Fals
 
     else:
         imgNodePositionX = -1600.0
-
-    # Vertex Node
-    # try:
-    #     vertexNode = byoMAT.node_tree.nodes['Vertex Color']
-    # except:
-    #     vertexNode = byoMAT.node_tree.nodes.new("ShaderNodeVertexColor")
 
     vertexNode = createNode(material=byoMAT, lookFor="Vertex Color", nodeName="ShaderNodeVertexColor", label="Vertex Node", pos=[-1500.0, 1000])
     normalNode = createNode(material=byoMAT, lookFor="Normal Map", nodeName="ShaderNodeNormalMap", label="Normal Node", pos=[-400.0, -350])
