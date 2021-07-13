@@ -127,6 +127,7 @@ def cacheCheck():
 
 
 def readJSON(f: str):
+    # print(f)
     # "C:\Users\ogulc\Desktop\valorant\val-scripts\export\Game\Environment\Asset\Props\Floater\15\Floater_15_PotholeA.gltf"
     # "C:\Users\ogulc\Desktop\valorant\val-scripts\export\ShooterGame\Content\Environment\Asset\Props\Floater\15\Floater_15_PotholeA.gltf"
     # logger.warning(f.__str__())
@@ -152,14 +153,15 @@ def checkImportable(object):
     # Check if entity has a loadable object
     if object["Type"] == "StaticMeshComponent" or object["Type"] == "InstancedStaticMeshComponent":
         if "StaticMesh" in object["Properties"]:
-            # Ensure only Visible objects are loaded
-            if "bVisible" in object["Properties"]:
-                if object["Properties"]["bVisible"]:
-                    return True
+            if object["Properties"]["StaticMesh"] is not None:
+                # Ensure only Visible objects are loaded
+                if "bVisible" in object["Properties"]:
+                    if object["Properties"]["bVisible"]:
+                        return True
+                    else:
+                        return False
                 else:
-                    return False
-            else:
-                return True
+                    return True
 
 
 def writeToJson(f, d):
@@ -220,12 +222,16 @@ def checkExtracted(f):
 
 def getFixedPath(object):
     a = CWD.joinpath("export", os.path.splitext(object["Properties"]["StaticMesh"]["ObjectPath"])[0].strip("/")).__str__()
+    # print(a)
     b = a.replace("ShooterGame\Content", "Game")
+
     return b
     # return CWD.joinpath("export", os.path.splitext(object["Properties"]["StaticMesh"]["ObjectPath"])[0].strip("/")).__str__()
 
 
 def getObjectname(object):
+
+    # logger.info(object)
     return Path(object["Properties"]["StaticMesh"]["ObjectPath"]).stem
 
 
@@ -719,25 +725,26 @@ def setMaterials(byo: bpy.types.Object, objectData: dict):
 
 
 def importObject(object, objectIndex, umapName, mainScene):
-    objName = getObjectname(object)
-    objPath = getFixedPath(object) + ".gltf"
+    if object is not None:
+        objName = getObjectname(object)
+        objPath = getFixedPath(object) + ".gltf"
 
-    if Path(objPath).exists():
-        logger.info(f"[{objectIndex}] : Importing GLTF : {objPath}")
-        with redirect_stdout(stdout):
-            bpy.ops.import_scene.gltf(filepath=objPath, loglevel=5, merge_vertices=True)
+        if Path(objPath).exists():
+            logger.info(f"[{objectIndex}] : Importing GLTF : {objPath}")
+            with redirect_stdout(stdout):
+                bpy.ops.import_scene.gltf(filepath=objPath, loglevel=5, merge_vertices=True)
 
-        imported = bpy.context.active_object
+            imported = bpy.context.active_object
 
-        blenderUtils.objectSetProperties(imported, object)
-        setMaterials(imported, object)
+            blenderUtils.objectSetProperties(imported, object)
+            setMaterials(imported, object)
 
-        # Move Object to UMAP Collection
-        bpy.data.collections[umapName].objects.link(imported)
-        mainScene.collection.objects.unlink(imported)
+            # Move Object to UMAP Collection
+            bpy.data.collections[umapName].objects.link(imported)
+            mainScene.collection.objects.unlink(imported)
 
-    else:
-        logger.warning(f"Couldn't find Found GLTF : {objPath}")
+        else:
+            logger.warning(f"Couldn't find Found GLTF : {objPath}")
 
 
 def filterBS_Lights(obj):
