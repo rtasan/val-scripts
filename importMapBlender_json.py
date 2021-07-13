@@ -837,6 +837,7 @@ def main():
 
     blenderUtils.cleanUP()
     bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", SELECTED_MAP.capitalize()).__str__() + ".blend")
+    
     # Import other .blend files back!
     for umap in _umapList.MAPS[SELECTED_MAP]:
         umapName = os.path.splitext(os.path.basename(umap))[0]
@@ -889,7 +890,7 @@ def main():
     worldNodeTree.links.new(worldNodeTree.nodes["Background"].inputs['Color'], ENV_MAP_NODE.outputs["Color"])
     worldNodeTree.links.new(worldNodeTree.nodes['World Output'].inputs['Surface'], worldNodeTree.nodes["Background"].outputs["Background"])
 
-    # bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", SELECTED_MAP.capitalize()).__str__() + ".blend")
+    bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", SELECTED_MAP.capitalize()).__str__() + ".blend")
 
 
 main()
