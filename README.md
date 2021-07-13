@@ -1,4 +1,4 @@
-# Foobar
+# VALORANT Content Creation Tools & Scripts
 
 Some useful scripts & tools to be used with creating VALORANT content
 
