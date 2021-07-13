@@ -8,12 +8,13 @@ import sys
 import bpy
 import importlib
 from time import time
-from bpy.types import VertexGroup
-from mathutils import Vector
 from contextlib import redirect_stdout
 from pathlib import Path
 from configparser import BasicInterpolation, ConfigParser
 
+
+# TODO FIX THE FUCKING LOGGER
+# TODO FIX NODE POSITIONS
 
 # // ------------------------------------
 #
@@ -21,7 +22,6 @@ from configparser import BasicInterpolation, ConfigParser
 stdout = io.StringIO()
 os.system("cls")
 sys.dont_write_bytecode = True
-
 
 CWD = Path(bpy.context.space_data.text.filepath).parent
 VAL_EXPORT_FOLDER = os.path.join(CWD, "export")
@@ -33,7 +33,7 @@ VAL_KEY = config["VALORANT"]["UE_AES"]
 VAL_VERSION = config["VALORANT"]["UE_VERSION"]
 VAL_PATH = config["VALORANT"]["PATH"]
 VAL_PAKS_PATH = config["VALORANT"]["PAKS"]
-
+SELECTED_MAP = config["VALORANT"]["MAP"]
 
 WHITE_RGB = (1, 1, 1, 1)
 
@@ -51,6 +51,7 @@ if Path(LOGFILE).exists():
 try:
     logger
 except NameError:
+
     # create logger with 'spam_application'
     logger = logging.getLogger("yo")
     logger.setLevel(logging.DEBUG)
@@ -65,9 +66,10 @@ except NameError:
     fh.setFormatter(formatter)
     ch.setFormatter(formatter)
     # add the handlers to the logger
-    # logger.addHandler(fh)
+
     if logger.handlers.__len__() == 0:
         logger.addHandler(ch)
+        logger.addHandler(fh)
 
 try:
     sys.path.append(CWD.__str__())
@@ -78,9 +80,8 @@ try:
     importlib.reload(_umapList)
     importlib.reload(blenderUtils)
     importlib.reload(common)
-
 except:
-    print("An exception occurred")
+    logger.critical("Failed to load the utilities")
 
 
 def cacheCheck():
@@ -89,39 +90,52 @@ def cacheCheck():
     # Check if settings.ini file set up correctly.
     # If not break the loop
     if VAL_PATH == "":
-        print("You didn't setup your 'settings.ini' file!")
+        logger.critical("You didn't setup your 'settings.ini' file!")
         return False
 
     if checkExtracted(VAL_EXPORT_FOLDER):
-        print("- JSONs are already extracted")
+        logger.info("JSONs are already extracted")
     else:
-        print("JSONs are not found, starting exporting!")
+        logger.warning("JSONs are not found, starting exporting!")
         # Extract JSONs
         extractJSONs()
 
-        # engineContent = CWD.joinpath("export", "Engine", "Content")
-        # engineF = CWD.joinpath("export", "Engine")
+        engineContent = CWD.joinpath("export", "Engine", "Content")
+        engineF = CWD.joinpath("export", "Engine")
 
         # for dir in engineContent.iterdir():
         #     for f in dir.iterdir():
         #         oPath = f.__str__()
         #         nPath = oPath.replace("Content", "").replace("\\\\", "\\")
-        #         os.chdir(nPath)
-        #         print(oPath, nPath)
-        #         os.rename(oPath, nPath)
+
+        #         yo = Path(nPath).parent
+        #         yo.mkdir(parents=True, exist_ok=True)
+        #         # os.chdir(nPath)
+        #         # logger.info(f"{oPath} , {nPath}")
+        #         try:
+        #             f.rename(nPath)
+        #         except:
+        #             pass
 
     # Check if everything is exported from uModel
     if checkExported(VAL_EXPORT_FOLDER):
-        print("- Models are already extracted")
+        logger.info("Models are already extracted")
     else:
-        print("Exports not found, starting exporting!")
+        logger.warning("Exports not found, starting exporting!")
         # Export Models
         exportAllModels()
 
 
 def readJSON(f: str):
     if "\\Engine" in f.__str__():
+        # print(f.__str__())
         f = f.__str__().replace("\Engine", "\\Engine\\Content")
+        # print(f)
+        if "ContentMaterials" in f:
+            # 'C:\Users\ogulc\Desktop\valorant\val-scripts\export\Engine\Content\Engine\ContentMaterials\DefaultMaterial.json'
+            # "C:\Users\ogulc\Desktop\valorant\val-scripts\export\Engine\Content\EngineMaterials\DefaultMaterial.json"
+            f = f.replace("Engine\\ContentMaterials", "EngineMaterials")
+            # print(f)
 
     with open(f, 'r') as jsonFile:
         data = jsonFile.read()
@@ -154,7 +168,6 @@ def timer(func):
         t1 = time()
         result = func(*args, **kwargs)
         t2 = time()
-        # print(f'Function {func.__name__!r} executed in {(t2-t1):.4f}s')
         logger.info(f'Function {func.__name__!r} executed in {(t2-t1):.3f}s')
         return result
     return wrap_func
@@ -239,7 +252,6 @@ def getRGB(parameterValue: dict) -> tuple:
         parameterValue["ParameterValue"]["G"],
         parameterValue["ParameterValue"]["B"],
         parameterValue["ParameterValue"]["A"])
-# This is WIP
 
 
 def setMaterial(byoMAT: bpy.types.Material, matJSON: dict, override: bool = False):
@@ -413,9 +425,8 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON: dict, override: bool = Fals
                 pass
 
             else:
-                logger.warning(f"Found an unset ScalarParameterValue: {param['ParameterInfo']['Name']}")
-
-    # logger.info(f"Setting Material : {objectName}")
+                pass
+                # logger.warning(f"Found an unset ScalarParameterValue: {param['ParameterInfo']['Name']}")
 
     if "TextureParameterValues" in matJSON[0]["Properties"]:
         imgNodePositionY = 700.0
@@ -424,66 +435,68 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON: dict, override: bool = Fals
             textImageNode = byoMAT.node_tree.nodes.new('ShaderNodeTexImage')
             texGamePath = os.path.splitext(texPROP["ParameterValue"]["ObjectPath"])[0].strip("/")
             texPath = CWD.joinpath("export", texGamePath).__str__() + ".tga"
-            textImageNode.image = bpy.data.images.load(texPath)
+            if Path(texPath).exists():
+                textImageNode.image = bpy.data.images.load(texPath)
 
-            # Set Image Node's Label, this helps a lot!
-            textImageNode.label = texPROP["ParameterInfo"]["Name"]
+                # Set Image Node's Label, this helps a lot!
+                textImageNode.label = texPROP["ParameterInfo"]["Name"]
 
-            textImageNode.location.x = imgNodePositionX
-            textImageNode.location.y = imgNodePositionY
+                textImageNode.location.x = imgNodePositionX
+                textImageNode.location.y = imgNodePositionY
 
-            imgNodePositionY = imgNodePositionY - imgNodeMargin
+                imgNodePositionY = imgNodePositionY - imgNodeMargin
 
-            if texPROP["ParameterInfo"]["Name"] == "Diffuse":
-                textImageNode.image.alpha_mode = "CHANNEL_PACKED"
-                Diffuse_Map = textImageNode
+                if texPROP["ParameterInfo"]["Name"] == "Diffuse":
+                    textImageNode.image.alpha_mode = "CHANNEL_PACKED"
+                    Diffuse_Map = textImageNode
 
-            elif texPROP["ParameterInfo"]["Name"] == "Diffuse A":
-                textImageNode.image.alpha_mode = "CHANNEL_PACKED"
-                Diffuse_A_Map = textImageNode
+                elif texPROP["ParameterInfo"]["Name"] == "Diffuse A":
+                    textImageNode.image.alpha_mode = "CHANNEL_PACKED"
+                    Diffuse_A_Map = textImageNode
 
-            elif texPROP["ParameterInfo"]["Name"] == "Diffuse B":
-                textImageNode.image.alpha_mode = "CHANNEL_PACKED"
-                Diffuse_B_Map = textImageNode
+                elif texPROP["ParameterInfo"]["Name"] == "Diffuse B":
+                    textImageNode.image.alpha_mode = "CHANNEL_PACKED"
+                    Diffuse_B_Map = textImageNode
 
-            elif texPROP["ParameterInfo"]["Name"] == "Diffuse B Low":
-                textImageNode.image.alpha_mode = "CHANNEL_PACKED"
-                Diffuse_B_Low_Map = textImageNode
+                elif texPROP["ParameterInfo"]["Name"] == "Diffuse B Low":
+                    textImageNode.image.alpha_mode = "CHANNEL_PACKED"
+                    Diffuse_B_Low_Map = textImageNode
 
-            elif texPROP["ParameterInfo"]["Name"] == "MRA":
-                textImageNode.image.colorspace_settings.name = "Linear"
-                MRA_MAP = textImageNode
+                elif texPROP["ParameterInfo"]["Name"] == "MRA":
+                    textImageNode.image.colorspace_settings.name = "Linear"
+                    MRA_MAP = textImageNode
 
-            elif texPROP["ParameterInfo"]["Name"] == "MRA A":
-                textImageNode.image.colorspace_settings.name = "Linear"
-                MRA_MAP = textImageNode
+                elif texPROP["ParameterInfo"]["Name"] == "MRA A":
+                    textImageNode.image.colorspace_settings.name = "Linear"
+                    MRA_MAP = textImageNode
 
-            elif texPROP["ParameterInfo"]["Name"] == "MRA B":
-                textImageNode.image.colorspace_settings.name = "Linear"
-                MRA_MAP_B = textImageNode
+                elif texPROP["ParameterInfo"]["Name"] == "MRA B":
+                    textImageNode.image.colorspace_settings.name = "Linear"
+                    MRA_MAP_B = textImageNode
 
-            elif texPROP["ParameterInfo"]["Name"] == "RGBA":
-                textImageNode.image.colorspace_settings.name = "Linear"
-                RGBA_MAP = textImageNode
+                elif texPROP["ParameterInfo"]["Name"] == "RGBA":
+                    textImageNode.image.colorspace_settings.name = "Linear"
+                    RGBA_MAP = textImageNode
 
-            elif texPROP["ParameterInfo"]["Name"] == "Mask Textuer":
-                textImageNode.image.colorspace_settings.name = "Linear"
-                MASK_MAP = textImageNode
+                elif texPROP["ParameterInfo"]["Name"] == "Mask Textuer":
+                    textImageNode.image.colorspace_settings.name = "Linear"
+                    MASK_MAP = textImageNode
 
-            elif texPROP["ParameterInfo"]["Name"] == "Normal":
-                textImageNode.image.colorspace_settings.name = "Non-Color"
-                Normal_Map = textImageNode
+                elif texPROP["ParameterInfo"]["Name"] == "Normal":
+                    textImageNode.image.colorspace_settings.name = "Non-Color"
+                    Normal_Map = textImageNode
 
-            elif texPROP["ParameterInfo"]["Name"] == "Texture A Normal":
-                textImageNode.image.colorspace_settings.name = "Non-Color"
-                Normal_A_Map = textImageNode
+                elif texPROP["ParameterInfo"]["Name"] == "Texture A Normal":
+                    textImageNode.image.colorspace_settings.name = "Non-Color"
+                    Normal_A_Map = textImageNode
 
-            elif texPROP["ParameterInfo"]["Name"] == "Texture B Normal":
-                textImageNode.image.colorspace_settings.name = "Non-Color"
-                Normal_B_Map = textImageNode
+                elif texPROP["ParameterInfo"]["Name"] == "Texture B Normal":
+                    textImageNode.image.colorspace_settings.name = "Non-Color"
+                    Normal_B_Map = textImageNode
 
-            else:
-                logger.warning(f"Found an unset TextureParameterValue: {param['ParameterInfo']['Name']}")
+                else:
+                    pass
+                    # logger.warning(f"Found an unset TextureParameterValue: {param['ParameterInfo']['Name']}")
 
     if "VectorParameterValues" in matJSON[0]["Properties"]:
         for param in matJSON[0]["Properties"]["VectorParameterValues"]:
@@ -516,7 +529,8 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON: dict, override: bool = Fals
                 ML_Brightness.use_custom_color = True
                 ML_Brightness.color = usedColor
             else:
-                logger.warning(f"Found an unset VectorParameterValue: {param['ParameterInfo']['Name']}")
+                pass
+                # logger.warning(f"Found an unset VectorParameterValue: {param['ParameterInfo']['Name']}")
 
     if "BasePropertyOverrides" in matJSON[0]["Properties"]:
         if "ShadingModel" in matJSON[0]["Properties"]["BasePropertyOverrides"]:
@@ -599,10 +613,6 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON: dict, override: bool = Fals
         if usesAlpha:
             byoMAT.node_tree.links.new(bsdf.inputs["Alpha"], Diffuse_Map.outputs["Alpha"])
 
-    # TODO
-    # Add mix RGB for Diffuse
-    # Add MRA Support
-
     # ANCHOR Work here -------------
     if Diffuse_A_Map:
 
@@ -674,30 +684,32 @@ def setMaterials(byo: bpy.types.Object, objectData: dict):
                 matName = getMatName(mat["MaterialInterface"])
                 if "WorldGridMaterial" not in matName:
                     matPath = getFullPath(mat["MaterialInterface"])
-                    matData = readJSON(matPath)
+                    if Path(matPath).exists():
+                        matData = readJSON(matPath)
 
-                    try:
-                        byoMAT = byo.material_slots[index].material
-                        byoMAT.name = matName
-                        setMaterial(byoMAT, matData)
-                    except IndexError:
-                        pass
+                        try:
+                            byoMAT = byo.material_slots[index].material
+                            byoMAT.name = matName
+                            setMaterial(byoMAT, matData)
+                        except IndexError:
+                            pass
 
     if "OverrideMaterials" in objectData["Properties"]:
         for index, mat in enumerate(objectData["Properties"]["OverrideMaterials"]):
             if mat is not None:
                 matName = getMatName(mat)
                 matPath = getFullPath(mat)
-                matData = readJSON(matPath)
+                if Path(matPath).exists():
+                    matData = readJSON(matPath)
 
-                try:
-                    byoMAT = byo.material_slots[index].material
-                    byoMAT.name = matName
-                    setMaterial(byoMAT, matData, override=True)
-                except IndexError:
-                    pass
-
-#  /// ----------------
+                    try:
+                        byoMAT = byo.material_slots[index].material
+                        byoMAT.name = matName
+                        setMaterial(byoMAT, matData, override=True)
+                    except IndexError:
+                        pass
+                else:
+                    logger.warning(f"Can't find the material : {matPath}")
 
 
 def importObject(object, objectIndex, umapName, mainScene):
@@ -706,7 +718,6 @@ def importObject(object, objectIndex, umapName, mainScene):
 
     # if DEBUG_OBJECT == objName:
     if Path(objPath).exists():
-        # print("importing : ", objPath)
         logger.info(f"[{objectIndex}] : Importing GLTF : {objPath}")
         with redirect_stdout(stdout):
             bpy.ops.import_scene.gltf(filepath=objPath, loglevel=5, merge_vertices=True)
@@ -721,7 +732,6 @@ def importObject(object, objectIndex, umapName, mainScene):
         mainScene.collection.objects.unlink(imported)
 
     else:
-        # print("Couldn't object's file : ", objPath)
         logger.warning(f"Couldn't find Found GLTF : {objPath}")
 
 
@@ -735,32 +745,34 @@ def filterBS_Lights(obj):
 
 def createLight(object: bpy.types.Object, index: int, collectionName: str, lightType: str = "POINT"):
 
-    # Create light datablock
     light_data = bpy.data.lights.new(name="", type=lightType)
     light_data.energy = 1000
 
-    # ANCHOR
-
     if lightType == "AREA":
         light_data.shape = "RECTANGLE"
-        light_data.size = object["Properties"]["SourceWidth"] * 0.01
-        light_data.size_y = object["Properties"]["SourceHeight"] * 0.01
+        if "SourceWidth" in object["Properties"]:
+            light_data.size = object["Properties"]["SourceWidth"] * 0.01
+        if "SourceHeight" in object["Properties"]:
+            light_data.size_y = object["Properties"]["SourceHeight"] * 0.01
 
     if lightType == "SPOT":
-        light_data.spot_size = radians(object["Properties"]["OuterConeAngle"])
+        if "OuterConeAngle" in object["Properties"]:
+            light_data.spot_size = radians(object["Properties"]["OuterConeAngle"])
     # Check these?
     #   "SourceRadius": 38.2382,
     #   "AttenuationRadius": 840.22626
 
     if "Intensity" in object["Properties"]:
-        light_data.energy = object["Properties"]["Intensity"] * 0.1
+        if "Intensity" in object["Properties"]:
+            light_data.energy = object["Properties"]["Intensity"] * 0.1
 
     if "LightColor" in object["Properties"]:
-        light_data.color = [
-            abs((object["Properties"]["LightColor"]["R"]) / float(255)),
-            abs((object["Properties"]["LightColor"]["G"]) / float(255)),
-            abs((object["Properties"]["LightColor"]["B"]) / float(255))
-        ]
+        if "LightColor" in object["Properties"]:
+            light_data.color = [
+                abs((object["Properties"]["LightColor"]["R"]) / float(255)),
+                abs((object["Properties"]["LightColor"]["G"]) / float(255)),
+                abs((object["Properties"]["LightColor"]["B"]) / float(255))
+            ]
 
         # lloc = (lx * 0.01, ly * -0.01, lz * 0.01)
     # Create new object, pass the light data
@@ -778,20 +790,11 @@ def main():
     # # // --------------------------------------------------
     # # Blender Loop
 
-    SELECTED_MAP = "bind"
-
-    # blenderUtils.cleanUP()
-
     for umapIndex, umap in enumerate(_umapList.MAPS[SELECTED_MAP.lower()]):
         blenderUtils.cleanUP()
         umapName = os.path.splitext(os.path.basename(umap))[0]
         umapPath = CWD.joinpath("export", umap.replace(".umap", ".json"))
         umapDATA = readJSON(umapPath)
-
-        # logger.info(umapName)
-        # print(umapName)
-
-        # bpy.ops.scene.new(type="NEW")
         main_scene = bpy.data.scenes["Scene"]
 
         import_collection = bpy.data.collections.new(umapName)
@@ -837,28 +840,30 @@ def main():
         #  // After this part saves the blend files, if working on the script, comment these out
         #  // ------------------------------------------
 
-        # Save to .blend file
-    #     bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", umapName).__str__() + ".blend")
+        # Save umap to .blend file
+        bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", umapName).__str__() + ".blend")
 
-    # blenderUtils.cleanUP()
-    # bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", SELECTED_MAP).__str__() + ".blend")
-    # for umap in _umapList.MAPS[SELECTED_MAP]:
-    #     umapName = os.path.splitext(os.path.basename(umap))[0]
-    #     umapBlend = CWD.joinpath("export", "Scenes", umapName).__str__() + ".blend"
+    blenderUtils.cleanUP()
+    bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", SELECTED_MAP.capitalize()).__str__() + ".blend")
+    # Import other .blend files back!
+    for umap in _umapList.MAPS[SELECTED_MAP]:
+        umapName = os.path.splitext(os.path.basename(umap))[0]
+        umapBlend = CWD.joinpath("export", "Scenes", umapName).__str__() + ".blend"
 
-    #     sec = "\\Collection\\"
-    #     obj = umapName
+        sec = "\\Collection\\"
+        obj = umapName
 
-    #     fp = umapBlend + sec + obj
-    #     dr = umapBlend + sec
+        fp = umapBlend + sec + obj
+        dr = umapBlend + sec
 
-    #     if Path(umapBlend).exists():
-    #         # C:\Users\ogulc\Desktop\valorant\valpy\export\Scenes\Duality_Art_A.blend\Collection\
-    #         bpy.ops.wm.append(filepath=fp, filename=obj, directory=dr)
-    # bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", SELECTED_MAP).__str__() + ".blend")
+        if Path(umapBlend).exists():
+            # C:\Users\ogulc\Desktop\valorant\valpy\export\Scenes\Duality_Art_A.blend\Collection\
+            # bpy.ops.wm.append(filepath=fp, filename=obj, directory=dr)
+            bpy.ops.wm.link(filepath=fp, filename=obj, directory=dr)
 
     # ANCHOR
     # Set up Skybox
+    # This is so junky omfg.
     bpy.context.scene.render.film_transparent = True
     worldMat = bpy.data.worlds['World']
     worldNodeTree = worldMat.node_tree
@@ -868,13 +873,15 @@ def main():
     if SELECTED_MAP.lower() == "split":
         skyboxMapPath = r"export\Game\Environment\Bonsai\Asset\Props\Skybox\0\M0\Skybox_0_M0_DF.tga"
     if SELECTED_MAP.lower() == "bind":
-        skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_DualitySky_DF.tga"
+        # NOTE bind skybox is ugly as fuck! So I used
+        # skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_DualitySky_DF.tga"
+        skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_VeniceSky_DF.tga"
     if SELECTED_MAP.lower() == "icebox":
         skyboxMapPath = r"export\Game\Environment\Port\WorldMaterials\Skydome\M1\Skydome_M1_DF.tga"
     if SELECTED_MAP.lower() == "breeze":
         skyboxMapPath = r"export\Game\Environment\FoxTrot\Asset\Props\Skybox\0\M0\Skybox_0_M0_DF.tga"
     if SELECTED_MAP.lower() == "haven":
-        skyboxMapPath = r"export\Game\Environment\Bonsai\Asset\Props\Skybox\0\M0\Skybox_0_M0_DF.tga"
+        skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M3\Skybox_M3_DF.tga"
     if SELECTED_MAP.lower() == "menu":
         skyboxMapPath = r"export\Game\Environment\Port\WorldMaterials\Skydome\M1\Skydome_M1_DF.tga"
     if SELECTED_MAP.lower() == "poveglia":
@@ -890,6 +897,8 @@ def main():
 
     worldNodeTree.links.new(worldNodeTree.nodes["Background"].inputs['Color'], ENV_MAP_NODE.outputs["Color"])
     worldNodeTree.links.new(worldNodeTree.nodes['World Output'].inputs['Surface'], worldNodeTree.nodes["Background"].outputs["Background"])
+
+    # bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", SELECTED_MAP.capitalize()).__str__() + ".blend")
 
 
 main()
