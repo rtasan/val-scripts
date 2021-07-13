@@ -716,7 +716,6 @@ def importObject(object, objectIndex, umapName, mainScene):
     objName = getObjectname(object)
     objPath = getFixedPath(object) + ".gltf"
 
-    # if DEBUG_OBJECT == objName:
     if Path(objPath).exists():
         logger.info(f"[{objectIndex}] : Importing GLTF : {objPath}")
         with redirect_stdout(stdout):
@@ -758,6 +757,8 @@ def createLight(object: bpy.types.Object, index: int, collectionName: str, light
     if lightType == "SPOT":
         if "OuterConeAngle" in object["Properties"]:
             light_data.spot_size = radians(object["Properties"]["OuterConeAngle"])
+
+    # NOTE
     # Check these?
     #   "SourceRadius": 38.2382,
     #   "AttenuationRadius": 840.22626
@@ -774,10 +775,7 @@ def createLight(object: bpy.types.Object, index: int, collectionName: str, light
                 abs((object["Properties"]["LightColor"]["B"]) / float(255))
             ]
 
-        # lloc = (lx * 0.01, ly * -0.01, lz * 0.01)
-    # Create new object, pass the light data
     light_object = bpy.data.objects.new(name=object["Name"], object_data=light_data)
-    # light_object.location = lloc
 
     blenderUtils.objectSetProperties(light_object, object)
     bpy.data.collections[collectionName].objects.link(light_object)
@@ -786,6 +784,11 @@ def createLight(object: bpy.types.Object, index: int, collectionName: str, light
 @ timer
 def main():
     cacheCheck()
+
+    # Set renderer to Cycles so Eeeve doesn't scream.
+    bpy.context.scene.render.engine = 'BLENDER_WORKBENCH'
+    bpy.context.scene.render.engine = 'CYCLES'
+    bpy.context.scene.cycles.device = 'GPU'
 
     # # // --------------------------------------------------
     # # Blender Loop
@@ -816,8 +819,8 @@ def main():
                     if filterBS_Lights(object):
                         importObject(object, objectIndex, umapName, main_scene)
 
-                # if object["Type"] == "PointLightComponent":
-                #     createLight(object=object, index=objectIndex, collectionName="Point Lights", lightType="POINT")
+                if object["Type"] == "PointLightComponent":
+                    createLight(object=object, index=objectIndex, collectionName="Point Lights", lightType="POINT")
 
                 if object["Type"] == "RectLightComponent":
                     createLight(object=object, index=objectIndex, collectionName="Rect Lights", lightType="AREA")
@@ -857,7 +860,6 @@ def main():
         dr = umapBlend + sec
 
         if Path(umapBlend).exists():
-            # C:\Users\ogulc\Desktop\valorant\valpy\export\Scenes\Duality_Art_A.blend\Collection\
             # bpy.ops.wm.append(filepath=fp, filename=obj, directory=dr)
             bpy.ops.wm.link(filepath=fp, filename=obj, directory=dr)
 
