@@ -902,6 +902,8 @@ def main():
     if SELECTED_MAP.lower() == "poveglia":
         skyboxMapPath = r"export\Game\Environment\Port\WorldMaterials\Skydome\M1\Skydome_M1_DF.tga"
 
+    else:
+        skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_VeniceSky_DF.tga"
     ENV_MAP = os.path.join(CWD.__str__(), skyboxMapPath)
 
     ENV_MAP_NODE = createNode(worldMat, lookFor="Environment Texture", nodeName="ShaderNodeTexEnvironment", label="SkyboxTexture_VALORANT")

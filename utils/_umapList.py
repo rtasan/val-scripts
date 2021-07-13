@@ -123,7 +123,7 @@ MAPS = {
         "Game/Maps/Menu/MainMenu_Ep02_01_Lighting.umap",
         "Game/Maps/Menu/MainMenuV2.umap"
     ],
-    "poveglia": [
+    "range": [
         "Game/Maps/Poveglia/Range_Art_AsylumDown.umap",
         "Game/Maps/Poveglia/Range_Art_AsylumUp.umap",
         "Game/Maps/Poveglia/Range_Art_BMainInterior.umap",
