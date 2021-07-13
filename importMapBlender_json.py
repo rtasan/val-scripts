@@ -127,11 +127,13 @@ def cacheCheck():
 
 
 def readJSON(f: str):
+    # "C:\Users\ogulc\Desktop\valorant\val-scripts\export\Game\Environment\Asset\Props\Floater\15\Floater_15_PotholeA.gltf"
+    # "C:\Users\ogulc\Desktop\valorant\val-scripts\export\ShooterGame\Content\Environment\Asset\Props\Floater\15\Floater_15_PotholeA.gltf"
+
     if "\\Engine" in f.__str__():
         f = f.__str__().replace("\Engine", "\\Engine\\Content")
         if "ContentMaterials" in f:
             f = f.replace("Engine\\ContentMaterials", "EngineMaterials")
-
     with open(f, 'r') as jsonFile:
         data = jsonFile.read()
         return json.loads(data)
@@ -208,6 +210,9 @@ def checkExtracted(f):
 
 
 def getFixedPath(object):
+    a = CWD.joinpath("export", os.path.splitext(object["Properties"]["StaticMesh"]["ObjectPath"])[0].strip("/")).__str__()
+    b = a.replace("ShooterGame\Content", "Game")
+    return b
     return CWD.joinpath("export", os.path.splitext(object["Properties"]["StaticMesh"]["ObjectPath"])[0].strip("/")).__str__()
 
 
@@ -218,6 +223,7 @@ def getObjectname(object):
 def getFullPath(mat: dict):
     matPath = os.path.splitext(mat["ObjectPath"])[0].strip("/")
     matPathFull = CWD.joinpath("export", matPath).__str__() + ".json"
+    matPathFull = matPathFull.replace("ShooterGame\Content", "Game")
     return matPathFull
 
 
@@ -770,7 +776,7 @@ def createLight(object: bpy.types.Object, index: int, collectionName: str, light
     bpy.data.collections[collectionName].objects.link(light_object)
 
 
-@ timer
+@timer
 def main():
     cacheCheck()
 
@@ -889,7 +895,7 @@ def main():
     worldNodeTree.links.new(worldNodeTree.nodes["Background"].inputs['Color'], ENV_MAP_NODE.outputs["Color"])
     worldNodeTree.links.new(worldNodeTree.nodes['World Output'].inputs['Surface'], worldNodeTree.nodes["Background"].outputs["Background"])
 
-    # bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", SELECTED_MAP.capitalize()).__str__() + ".blend")
+    bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", SELECTED_MAP.capitalize()).__str__() + ".blend")
 
 
 main()
