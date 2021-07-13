@@ -885,25 +885,25 @@ def main():
 
     if SELECTED_MAP.lower() == "ascent":
         skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_VeniceSky_DF.tga"
-    if SELECTED_MAP.lower() == "split":
+    elif SELECTED_MAP.lower() == "split":
         skyboxMapPath = r"export\Game\Environment\Bonsai\Asset\Props\Skybox\0\M0\Skybox_0_M0_DF.tga"
-    if SELECTED_MAP.lower() == "bind":
+    elif SELECTED_MAP.lower() == "bind":
         # NOTE bind skybox is ugly as fuck! So I used
         # skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_DualitySky_DF.tga"
         skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_VeniceSky_DF.tga"
-    if SELECTED_MAP.lower() == "icebox":
+    elif SELECTED_MAP.lower() == "icebox":
         skyboxMapPath = r"export\Game\Environment\Port\WorldMaterials\Skydome\M1\Skydome_M1_DF.tga"
-    if SELECTED_MAP.lower() == "breeze":
+    elif SELECTED_MAP.lower() == "breeze":
         skyboxMapPath = r"export\Game\Environment\FoxTrot\Asset\Props\Skybox\0\M0\Skybox_0_M0_DF.tga"
-    if SELECTED_MAP.lower() == "haven":
+    elif SELECTED_MAP.lower() == "haven":
         skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M3\Skybox_M3_DF.tga"
-    if SELECTED_MAP.lower() == "menu":
+    elif SELECTED_MAP.lower() == "menu":
         skyboxMapPath = r"export\Game\Environment\Port\WorldMaterials\Skydome\M1\Skydome_M1_DF.tga"
-    if SELECTED_MAP.lower() == "poveglia":
+    elif SELECTED_MAP.lower() == "poveglia":
         skyboxMapPath = r"export\Game\Environment\Port\WorldMaterials\Skydome\M1\Skydome_M1_DF.tga"
-
     else:
         skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_VeniceSky_DF.tga"
+
     ENV_MAP = os.path.join(CWD.__str__(), skyboxMapPath)
 
     ENV_MAP_NODE = createNode(worldMat, lookFor="Environment Texture", nodeName="ShaderNodeTexEnvironment", label="SkyboxTexture_VALORANT")
