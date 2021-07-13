@@ -129,14 +129,23 @@ def cacheCheck():
 def readJSON(f: str):
     # "C:\Users\ogulc\Desktop\valorant\val-scripts\export\Game\Environment\Asset\Props\Floater\15\Floater_15_PotholeA.gltf"
     # "C:\Users\ogulc\Desktop\valorant\val-scripts\export\ShooterGame\Content\Environment\Asset\Props\Floater\15\Floater_15_PotholeA.gltf"
+    # logger.warning(f.__str__())
 
-    if "\\Engine" in f.__str__():
-        f = f.__str__().replace("\Engine", "\\Engine\\Content")
-        if "ContentMaterials" in f:
-            f = f.replace("Engine\\ContentMaterials", "EngineMaterials")
+    # WARNING - C:\Users\ogulc\Desktop\valorant\val-scripts\export\Engine\Content\EngineMaterials\DefaultMaterial.json
+    # WARNING - C:\Users\ogulc\Desktop\valorant\val-scripts\export\Engine\Content\Content\EngineMaterials\DefaultMaterial.json
+
+    # if "\\Engine" in f.__str__():
+    #     f = f.__str__().replace("\Engine", "\\Engine\\Content")
+    #     if "ContentMaterials" in f:
+    #         f = f.replace("Engine\\ContentMaterials", "EngineMaterials")
+
+    # logger.warning(f.__str__())
+
     with open(f, 'r') as jsonFile:
         data = jsonFile.read()
         return json.loads(data)
+
+        # logger.warning(f.__str__())
 
 
 def checkImportable(object):
@@ -213,7 +222,7 @@ def getFixedPath(object):
     a = CWD.joinpath("export", os.path.splitext(object["Properties"]["StaticMesh"]["ObjectPath"])[0].strip("/")).__str__()
     b = a.replace("ShooterGame\Content", "Game")
     return b
-    return CWD.joinpath("export", os.path.splitext(object["Properties"]["StaticMesh"]["ObjectPath"])[0].strip("/")).__str__()
+    # return CWD.joinpath("export", os.path.splitext(object["Properties"]["StaticMesh"]["ObjectPath"])[0].strip("/")).__str__()
 
 
 def getObjectname(object):
@@ -429,6 +438,8 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON: dict, override: bool = Fals
         for texPROP in matJSON[0]["Properties"]["TextureParameterValues"]:
             textImageNode = byoMAT.node_tree.nodes.new('ShaderNodeTexImage')
             texGamePath = os.path.splitext(texPROP["ParameterValue"]["ObjectPath"])[0].strip("/")
+            texGamePath = texGamePath.replace("ShooterGame/Content", "Game")
+            # logger.info(texGamePath)
             texPath = CWD.joinpath("export", texGamePath).__str__() + ".tga"
             if Path(texPath).exists():
                 textImageNode.image = bpy.data.images.load(texPath)
