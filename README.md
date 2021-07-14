@@ -21,8 +21,8 @@ Some useful scripts & tools to be used with creating VALORANT content
 - If you do another import after running the script, it won't export them again.
 
 
-## Contributing
-Use Discord to contact with me ! If you have a useful script for me to add here, let me know!
+## Contributing & Help
+You can contact me & get support through my Discord server. Tho this doesn't mean I'll always be available, so please be patient.
 
 ### Thanks
 - floxay
