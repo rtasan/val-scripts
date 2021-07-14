@@ -22,7 +22,10 @@ Some useful scripts & tools to be used with creating VALORANT content
 
 
 ## Contributing & Help
+
 You can contact me & get support through my Discord server. Tho this doesn't mean I'll always be available, so please be patient.
+Join my Discord Server : https://discord.gg/5G68gQkebb
+
 
 ### Thanks
 - floxay
