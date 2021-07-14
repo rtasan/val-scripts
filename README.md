@@ -2,7 +2,10 @@
 
 Some useful scripts & tools to be used with creating VALORANT content
 
+### Prerequisites - IMPORTANT!
+- You need to have .NET5 installed, you can download it here. https://dotnet.microsoft.com/download/dotnet/5.0/runtime
 ## Extracting maps
+
 
     1 - Open "settings.ini" file using a text editor
     2 - Set the "PATH" to your VALORANT Installation
