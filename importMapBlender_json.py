@@ -841,11 +841,6 @@ def main():
                 if object["Type"] == "SpotLightComponent":
                     createLight(object=object, index=objectIndex, collectionName="Spot Lights", lightType="SPOT")
 
-        elif "VFX" in umapName:
-            for objectIndex, object in enumerate(umapDATA):
-                if checkImportable(object):
-                    importObject(object, objectIndex, umapName, main_scene)
-
         else:
             for objectIndex, object in enumerate(umapDATA):
                 if checkImportable(object):

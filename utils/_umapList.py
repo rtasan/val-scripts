@@ -118,11 +118,9 @@ MAPS = {
 
     ],
     "menu": [
-        "Game/Maps/Menu/MainMenu_Ep02_01_Characters.umap",
-        "Game/Maps/Menu/MainMenu_Ep02_01_EnvArt.umap",
-        "Game/Maps/Menu/MainMenu_Ep02_01_Lighting.umap",
-        "Game/Maps/Menu/MainMenuV2.umap"
+        "Game/Maps/Menu/MainMenuV2.umap",
     ],
+
     "range": [
         "Game/Maps/Poveglia/Range_Art_AsylumDown.umap",
         "Game/Maps/Poveglia/Range_Art_AsylumUp.umap",
@@ -142,5 +140,4 @@ MAPS = {
         "Game/Maps/Poveglia/Range_Art_VTOL.umap",
         "Game/Maps/Poveglia/Range_Lighting.umap",
         "Game/Maps/Poveglia/Range_VFX.umap",
-        # "Game/Maps/Poveglia/Range.umap",
     ]}
