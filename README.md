@@ -4,6 +4,8 @@ Some useful scripts & tools to be used with creating VALORANT content
 
 ### Prerequisites - IMPORTANT!
 - You need to have .NET5 installed, you can download it here. https://dotnet.microsoft.com/download/dotnet/5.0/runtime
+- You need to enable the GLTF plugin inside Blender
+- Blender 2.9x or higher is needed.
 ## Extracting maps
 
 
