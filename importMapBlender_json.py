@@ -7,6 +7,7 @@ import logging
 import sys
 import bpy
 import importlib
+import addon_utils
 from time import time
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -16,8 +17,16 @@ from configparser import BasicInterpolation, ConfigParser
 # TODO FIX THE LOGGER
 # TODO FIX NODE POSITIONS
 
+
 # // ------------------------------------
 #
+
+
+# Create a new Empty scene so it doesn't fuck up the Paths
+# cur_scene = bpy.context.scene
+# bpy.ops.scene.new(type='EMPTY')
+# bpy.context.scene.name = "newscene"
+# new_context = bpy.context.scene
 
 stdout = io.StringIO()
 os.system("cls")
@@ -30,12 +39,11 @@ config = ConfigParser(interpolation=BasicInterpolation())
 config.read(os.path.join(CWD.__str__(), 'settings.ini'))
 
 VAL_KEY = config["VALORANT"]["UE_AES"]
-VAL_VERSION = config["VALORANT"]["UE_VERSION"]
 VAL_PATH = config["VALORANT"]["PATH"]
-VAL_PAKS_PATH = config["VALORANT"]["PAKS"]
+VAL_PAKS_PATH = config["VALORANT"]["PATH"] + "\live\ShooterGame\Content\Paks"
 SELECTED_MAP = config["VALORANT"]["MAP"]
-
 WHITE_RGB = (1, 1, 1, 1)
+BLACK_RGB = (0, 0, 0, 0)
 
 
 # // ------------------------------------
@@ -100,23 +108,6 @@ def cacheCheck():
         # Extract JSONs
         extractJSONs()
 
-        engineContent = CWD.joinpath("export", "Engine", "Content")
-        engineF = CWD.joinpath("export", "Engine")
-
-        # for dir in engineContent.iterdir():
-        #     for f in dir.iterdir():
-        #         oPath = f.__str__()
-        #         nPath = oPath.replace("Content", "").replace("\\\\", "\\")
-
-        #         yo = Path(nPath).parent
-        #         yo.mkdir(parents=True, exist_ok=True)
-        #         # os.chdir(nPath)
-        #         # logger.info(f"{oPath} , {nPath}")
-        #         try:
-        #             f.rename(nPath)
-        #         except:
-        #             pass
-
     # Check if everything is exported from uModel
     if checkExported(VAL_EXPORT_FOLDER):
         logger.info("Models are already extracted")
@@ -127,26 +118,14 @@ def cacheCheck():
 
 
 def readJSON(f: str):
-    # print(f)
-    # "C:\Users\ogulc\Desktop\valorant\val-scripts\export\Game\Environment\Asset\Props\Floater\15\Floater_15_PotholeA.gltf"
-    # "C:\Users\ogulc\Desktop\valorant\val-scripts\export\ShooterGame\Content\Environment\Asset\Props\Floater\15\Floater_15_PotholeA.gltf"
-    # logger.warning(f.__str__())
-
-    # WARNING - C:\Users\ogulc\Desktop\valorant\val-scripts\export\Engine\Content\EngineMaterials\DefaultMaterial.json
-    # WARNING - C:\Users\ogulc\Desktop\valorant\val-scripts\export\Engine\Content\Content\EngineMaterials\DefaultMaterial.json
-
-    # if "\\Engine" in f.__str__():
-    #     f = f.__str__().replace("\Engine", "\\Engine\\Content")
-    #     if "ContentMaterials" in f:
-    #         f = f.replace("Engine\\ContentMaterials", "EngineMaterials")
-
-    # logger.warning(f.__str__())
-
     with open(f, 'r') as jsonFile:
         data = jsonFile.read()
         return json.loads(data)
 
-        # logger.warning(f.__str__())
+
+def writeToJson(f, d):
+    with open(os.path.join(CWD.__str__(), "errors", f"{f}.json"), 'w') as outfile:
+        json.dump(d, outfile, indent=4)
 
 
 def checkImportable(object):
@@ -162,11 +141,6 @@ def checkImportable(object):
                         return False
                 else:
                     return True
-
-
-def writeToJson(f, d):
-    with open(os.path.join(CWD.__str__(), "errors", f"{f}.json"), 'w') as outfile:
-        json.dump(d, outfile, indent=4)
 
 
 def timer(func):
@@ -188,12 +162,18 @@ def checkExported(f):
         return False
 
 
+def checkExtracted(f):
+    if Path(f).joinpath("exported.jo").exists():
+        return True
+    else:
+        return False
+
+
 def exportAllModels():
     subprocess.call([CWD.joinpath("tools", "umodel.exe").__str__(),
                      f"-path={VAL_PAKS_PATH}",
                      f"-game=valorant",
                      f"-aes={VAL_KEY}",
-                    #  "-pkg=*.uasset",
                      "-export",
                      "*.uasset",
                      "-gltf",
@@ -213,26 +193,27 @@ def extractJSONs():
         out_file.write("")
 
 
-def checkExtracted(f):
-    if Path(f).joinpath("exported.jo").exists():
-        return True
-    else:
-        return False
-
-
 def getFixedPath(object):
     a = CWD.joinpath("export", os.path.splitext(object["Properties"]["StaticMesh"]["ObjectPath"])[0].strip("/")).__str__()
-    # print(a)
-    b = a.replace("ShooterGame\Content", "Game")
-
-    return b
-    # return CWD.joinpath("export", os.path.splitext(object["Properties"]["StaticMesh"]["ObjectPath"])[0].strip("/")).__str__()
+    return a.replace("ShooterGame\Content", "Game")
 
 
 def getObjectname(object):
 
     # logger.info(object)
     return Path(object["Properties"]["StaticMesh"]["ObjectPath"]).stem
+
+
+def getMatName(mat: dict):
+    return Path(os.path.splitext(mat["ObjectPath"])[0].strip("/")).name
+
+
+def getRGB(parameterValue: dict) -> tuple:
+    return (
+        parameterValue["ParameterValue"]["R"],
+        parameterValue["ParameterValue"]["G"],
+        parameterValue["ParameterValue"]["B"],
+        parameterValue["ParameterValue"]["A"])
 
 
 def getFullPath(mat: dict):
@@ -242,8 +223,12 @@ def getFullPath(mat: dict):
     return matPathFull
 
 
-def getMatName(mat: dict):
-    return Path(os.path.splitext(mat["ObjectPath"])[0].strip("/")).name
+def filterBS_Lights(obj):
+    if "Properties" in obj:
+        if "StaticMesh" in obj["Properties"]:
+            if "ObjectName" in obj["Properties"]["StaticMesh"]:
+                if "SuperGrid" not in obj["Properties"]["StaticMesh"]["ObjectName"] and "LightBlocker" not in obj["Properties"]["StaticMesh"]["ObjectName"]:
+                    return True
 
 
 def createNode(material: bpy.types.Material, lookFor: str = "", nodeName: str = "", label: str = "", pos: list = False) -> bpy.types.ShaderNode:
@@ -262,20 +247,7 @@ def createNode(material: bpy.types.Material, lookFor: str = "", nodeName: str = 
     return node
 
 
-def getRGB(parameterValue: dict) -> tuple:
-    return (
-        parameterValue["ParameterValue"]["R"],
-        parameterValue["ParameterValue"]["G"],
-        parameterValue["ParameterValue"]["B"],
-        parameterValue["ParameterValue"]["A"])
-
-
 def setMaterial(byoMAT: bpy.types.Material, matJSON: dict, override: bool = False):
-    # aem is ao emission and misc
-    # mrs is metallic roughness and specular
-
-    # byoMAT.node_tree.nodes.new('ShaderNodeGroup')
-
     byoMAT.use_nodes = True
     byoMAT.name = matJSON[0]["Name"]
     bsdf = byoMAT.node_tree.nodes["Principled BSDF"]
@@ -602,7 +574,7 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON: dict, override: bool = Fals
                 MRA_MIX = createNode(material=byoMAT, lookFor="asd", nodeName="ShaderNodeMixRGB", label="mix MRA", pos=[MRA_MAP_A.location.x + 500, MRA_MAP_A.location.y - 150])
                 byoMAT.node_tree.links.new(MRA_MIX.inputs[0], vertexNode.outputs["Color"])
                 byoMAT.node_tree.links.new(MRA_MIX.inputs['Color1'], MRA_MAP_A.outputs["Color"])
-                MRA_MIX.inputs["Color2"].default_value = (0, 0, 0, 0)
+                MRA_MIX.inputs["Color2"].default_value = BLACK_RGB
 
                 byoMAT.node_tree.links.new(sepRGB_MRA_node.inputs['Image'], MRA_MIX.outputs["Color"])
                 byoMAT.node_tree.links.new(bsdf.inputs['Roughness'], sepRGB_MRA_node.outputs["G"])
@@ -745,14 +717,6 @@ def importObject(object, objectIndex, umapName, mainScene):
 
         else:
             logger.warning(f"Couldn't find Found GLTF : {objPath}")
-
-
-def filterBS_Lights(obj):
-    if "Properties" in obj:
-        if "StaticMesh" in obj["Properties"]:
-            if "ObjectName" in obj["Properties"]["StaticMesh"]:
-                if "SuperGrid" not in obj["Properties"]["StaticMesh"]["ObjectName"] and "LightBlocker" not in obj["Properties"]["StaticMesh"]["ObjectName"]:
-                    return True
 
 
 def createLight(object: bpy.types.Object, index: int, collectionName: str, lightType: str = "POINT"):
@@ -913,4 +877,13 @@ def main():
     bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", SELECTED_MAP.capitalize()).__str__() + ".blend")
 
 
-main()
+if (2, 92, 0) > bpy.app.version:
+    logger.warning("Your version of Blender is not supported, update to 2.92 or higher.")
+    logger.warning("https://www.blender.org/download/")
+else:
+    GLTF_ENABLED = addon_utils.check('io_scene_gltf2')[0]
+    if not GLTF_ENABLED:
+        addon_utils.enable("io_scene_gltf2", default_set=True)
+        logger.info("Enabled : GLTF Addon!")
+
+    main()
