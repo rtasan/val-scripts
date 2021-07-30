@@ -81,11 +81,11 @@ except NameError:
 
 try:
     sys.path.append(CWD.__str__())
-    from utils import _umapList
+    from utils import _umapList_json
     from utils import blenderUtils
     from utils import common
 
-    importlib.reload(_umapList)
+    importlib.reload(_umapList_json)
     importlib.reload(blenderUtils)
     importlib.reload(common)
 except:
@@ -539,7 +539,7 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON: dict, override: bool = Fals
                 if param["ParameterInfo"]["Name"] == "Blend To Flat":
                     pass
                 if param["ParameterInfo"]["Name"] == "Blend To Flat MRA":
-                    logger.info("fdasasnodnsafıdsaonfdsaıjkofğdpabfjsdaofbdsajofdsağbfdsao")
+                    # logger.info("fdasasnodnsafıdsaonfdsaıjkofğdpabfjsdaofbdsajofdsağbfdsao")
                     MRA_blendToFlat = True
                 if param["ParameterInfo"]["Name"] == "Blend Roughness":
                     pass
@@ -708,7 +708,7 @@ def importObject(object, objectIndex, umapName, mainScene):
 
             imported = bpy.context.active_object
 
-            blenderUtils.objectSetProperties(imported, object)
+            blenderUtils.objectSetPropertiesJSON(imported, object)
             setMaterials(imported, object)
 
             # Move Object to UMAP Collection
@@ -754,7 +754,7 @@ def createLight(object: bpy.types.Object, index: int, collectionName: str, light
 
     light_object = bpy.data.objects.new(name=object["Name"], object_data=light_data)
 
-    blenderUtils.objectSetProperties(light_object, object)
+    blenderUtils.objectSetPropertiesJSON(light_object, object)
     bpy.data.collections[collectionName].objects.link(light_object)
 
 
@@ -770,7 +770,7 @@ def main():
     # # // --------------------------------------------------
     # # Blender Loop
 
-    for umapIndex, umap in enumerate(_umapList.MAPS[SELECTED_MAP.lower()]):
+    for umapIndex, umap in enumerate(_umapList_json.MAPS[SELECTED_MAP.lower()]):
         blenderUtils.cleanUP()
         umapName = os.path.splitext(os.path.basename(umap))[0]
         umapPath = CWD.joinpath("export", umap.replace(".umap", ".json"))
@@ -821,7 +821,7 @@ def main():
     blenderUtils.cleanUP()
     bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", SELECTED_MAP.capitalize()).__str__() + ".blend")
     # Import other .blend files back!
-    for umap in _umapList.MAPS[SELECTED_MAP]:
+    for umap in _umapList_json.MAPS[SELECTED_MAP]:
         umapName = os.path.splitext(os.path.basename(umap))[0]
         umapBlend = CWD.joinpath("export", "Scenes", umapName).__str__() + ".blend"
 

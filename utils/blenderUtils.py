@@ -24,33 +24,60 @@ def cleanUP():
         bpy.data.objects.remove(block)
 
 
+# def objectSetPropertiesJSON(byo, object):
+#     try:
+#         byo.location = [
+#             object["Properties"]["RelativeLocation"]["X"] * 0.01,
+#             object["Properties"]["RelativeLocation"]["Y"] * -0.01,
+#             object["Properties"]["RelativeLocation"]["Z"] * 0.01
+#         ]
+#     except:
+#         pass
+#     try:
+#         byo.rotation_mode = 'XYZ'
+#         byo.rotation_euler = [
+#             radians(object["Properties"]["RelativeRotation"]["Roll"]),
+#             radians(-object["Properties"]["RelativeRotation"]["Pitch"]),
+#             radians(-object["Properties"]["RelativeRotation"]["Yaw"])
+#         ]
+#     except:
+#         pass
+#     try:
+#         byo.scale = [
+#             object["Properties"]["RelativeScale3D"]["X"],
+#             object["Properties"]["RelativeScale3D"]["Y"],
+#             object["Properties"]["RelativeScale3D"]["Z"],
+#         ]
+#     except:
+#         pass
+
+
 def objectSetProperties(byo, object):
     try:
         byo.location = [
-            object["Properties"]["RelativeLocation"]["X"] * 0.01,
-            object["Properties"]["RelativeLocation"]["Y"] * -0.01,
-            object["Properties"]["RelativeLocation"]["Z"] * 0.01
+            object["RelativeLocation"]["X"] * 0.01,
+            object["RelativeLocation"]["Y"] * -0.01,
+            object["RelativeLocation"]["Z"] * 0.01
         ]
     except:
         pass
     try:
         byo.rotation_mode = 'XYZ'
         byo.rotation_euler = [
-            radians(object["Properties"]["RelativeRotation"]["Roll"]),
-            radians(-object["Properties"]["RelativeRotation"]["Pitch"]),
-            radians(-object["Properties"]["RelativeRotation"]["Yaw"])
+            radians(object["RelativeRotation"]["Roll"]),
+            radians(-object["RelativeRotation"]["Pitch"]),
+            radians(-object["RelativeRotation"]["Yaw"])
         ]
     except:
         pass
     try:
         byo.scale = [
-            object["Properties"]["RelativeScale3D"]["X"],
-            object["Properties"]["RelativeScale3D"]["Y"],
-            object["Properties"]["RelativeScale3D"]["Z"],
+            object["RelativeScale3D"]["X"],
+            object["RelativeScale3D"]["Y"],
+            object["RelativeScale3D"]["Z"],
         ]
     except:
         pass
-
 
 def float_lerp(a, b, t):
     return (1.0 - t) * a + t * b
@@ -82,6 +109,7 @@ def calc_priority_by_socket(node):
                         result -= 1
 
     return result
+
 
 
 def calc_priority_by_type(node):
