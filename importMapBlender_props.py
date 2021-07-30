@@ -241,6 +241,17 @@ def createNode(material: bpy.types.Material, lookFor: str = "", nodeName: str = 
 
     return node
 
+def getFixedMatPath(s, first, last):
+    try:
+        start = s.index(first) + len(first)
+        end = s.index(last, start)
+        yo = s[start:end]
+        yo = os.path.splitext(yo)[0].strip("/")
+        yo = CWD.joinpath("export", yo).__str__()
+        return yo
+    except ValueError:
+        return ""
+
 
 def setMaterial(byoMAT: bpy.types.Material, matJSON: list, override: bool = False):
     byoMAT.use_nodes = True
@@ -250,7 +261,7 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON: list, override: bool = Fals
 
     defValue = 0.100
     bsdf.inputs["Specular"].default_value = 0.100
-    bsdf.inputs["Metallic"].default_value = 0.550
+    bsdf.inputs["Metallic"].default_value = 0.000
 
     Diffuse_Map = False
     Diffuse_A_Map = False
@@ -494,7 +505,6 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON: list, override: bool = Fals
         if "bOverride_BlendToFlatMRA = true" in line:
             MRA_blendToFlat = True
 
-        RGBA_MASK_COLOR = "B"
 
     if MRA_MAP:
 
@@ -583,12 +593,12 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON: list, override: bool = Fals
         byoMAT.node_tree.links.new(normalNode.inputs["Color"], Normal_Mix.outputs["Color"])
         byoMAT.node_tree.links.new(bsdf.inputs['Normal'], normalNode.outputs['Normal'])
 
-    # if RGBA_MAP:
-    #     sepRGB_RGBA_node = createNode(material=byoMAT, lookFor="", nodeName="ShaderNodeSeparateRGB", label="Seperate RGB_RGBA", pos=[-390.0, -200])
+    if RGBA_MAP:
+        sepRGB_RGBA_node = createNode(material=byoMAT, lookFor="", nodeName="ShaderNodeSeparateRGB", label="Seperate RGB_RGBA", pos=[-390.0, -200])
 
-    #     byoMAT.node_tree.links.new(sepRGB_RGBA_node.inputs[0], RGBA_MAP.outputs["Color"])
+        byoMAT.node_tree.links.new(sepRGB_RGBA_node.inputs[0], RGBA_MAP.outputs["Color"])
 
-    #     byoMAT.node_tree.links.new(bsdf.inputs["Alpha"], sepRGB_RGBA_node.outputs[RGBA_MASK_COLOR])
+        byoMAT.node_tree.links.new(bsdf.inputs["Alpha"], sepRGB_RGBA_node.outputs[RGBA_MASK_COLOR])
 
 
 def setMaterials(byo: bpy.types.Object, object: dict, objIndex: int):
@@ -597,34 +607,7 @@ def setMaterials(byo: bpy.types.Object, object: dict, objIndex: int):
     objectProperties = object["ExportValue"]
     BYO_matCount = byo.material_slots.__len__()
     OG_objectData = readPROP(getFixedPath(objectProperties))
-    # logger.info(OG_objectData)
 
-    # if "StaticMaterials" in OG_objectData[2]["Properties"]:
-    #     for index, mat in enumerate(OG_objectData[2]["Properties"]["StaticMaterials"]):
-    #         if mat["MaterialInterface"] is not None:
-    #             matName = getMatName(mat["MaterialInterface"])
-    #             if "WorldGridMaterial" not in matName:
-    #                 matPath = getFullPath(mat["MaterialInterface"])
-    #                 if Path(matPath).exists():
-    #                     matData = readJSON(matPath)
-
-    #                     try:
-    #                         byoMAT = byo.material_slots[index].material
-    #                         byoMAT.name = matName
-    #                         setMaterial(byoMAT, matData)
-    #                     except IndexError:
-    #                         pass
-
-    def getFixedMatPath(s, first, last):
-        try:
-            start = s.index(first) + len(first)
-            end = s.index(last, start)
-            yo = s[start:end]
-            yo = os.path.splitext(yo)[0].strip("/")
-            yo = CWD.joinpath("export", yo).__str__()
-            return yo
-        except ValueError:
-            return ""
 
     for matNumber in range(4):
         for i, line in enumerate(OG_objectData):
@@ -752,6 +735,49 @@ def main():
             for objectIndex, object in enumerate(umapDATA):
                 if checkImportable(object):
                     importObject(object, objectIndex, umapName, main_scene)
+
+
+    
+    # ANCHOR
+    # Set up Skybox
+    # This is so junky omfg.
+    bpy.context.scene.render.film_transparent = True
+    worldMat = bpy.data.worlds['World']
+    worldNodeTree = worldMat.node_tree
+
+    if SELECTED_MAP.lower() == "ascent":
+        skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_VeniceSky_DF.tga"
+    elif SELECTED_MAP.lower() == "split":
+        skyboxMapPath = r"export\Game\Environment\Bonsai\Asset\Props\Skybox\0\M0\Skybox_0_M0_DF.tga"
+    elif SELECTED_MAP.lower() == "bind":
+        # NOTE bind skybox is ugly as fuck! So I used
+        # skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_DualitySky_DF.tga"
+        skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_VeniceSky_DF.tga"
+    elif SELECTED_MAP.lower() == "icebox":
+        skyboxMapPath = r"export\Game\Environment\Port\WorldMaterials\Skydome\M1\Skydome_M1_DF.tga"
+    elif SELECTED_MAP.lower() == "breeze":
+        skyboxMapPath = r"export\Game\Environment\FoxTrot\Asset\Props\Skybox\0\M0\Skybox_0_M0_DF.tga"
+    elif SELECTED_MAP.lower() == "haven":
+        skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M3\Skybox_M3_DF.tga"
+    elif SELECTED_MAP.lower() == "menu":
+        skyboxMapPath = r"export\Game\Environment\Port\WorldMaterials\Skydome\M1\Skydome_M1_DF.tga"
+    elif SELECTED_MAP.lower() == "poveglia":
+        skyboxMapPath = r"export\Game\Environment\Port\WorldMaterials\Skydome\M1\Skydome_M1_DF.tga"
+    else:
+        skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_VeniceSky_DF.tga"
+
+    ENV_MAP = os.path.join(CWD.__str__(), skyboxMapPath)
+
+    ENV_MAP_NODE = createNode(worldMat, lookFor="Environment Texture", nodeName="ShaderNodeTexEnvironment", label="SkyboxTexture_VALORANT")
+    ENV_MAP_NODE.image = bpy.data.images.load(ENV_MAP)
+
+    BG_NODE = worldNodeTree.nodes["Background"]
+    BG_NODE.inputs["Strength"].default_value = 3
+
+    worldNodeTree.links.new(worldNodeTree.nodes["Background"].inputs['Color'], ENV_MAP_NODE.outputs["Color"])
+    worldNodeTree.links.new(worldNodeTree.nodes['World Output'].inputs['Surface'], worldNodeTree.nodes["Background"].outputs["Background"])
+
+    bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", SELECTED_MAP.capitalize()).__str__() + ".blend")
 
 
 if (2, 92, 0) > bpy.app.version:
