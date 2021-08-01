@@ -8,6 +8,10 @@ __pycache__/
 
 
 export/
+testing.py
+testing2.py
+
+tools/Output
 
 # Distribution / packaging
 .Python

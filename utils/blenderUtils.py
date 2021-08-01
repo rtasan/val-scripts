@@ -24,34 +24,6 @@ def cleanUP():
         bpy.data.objects.remove(block)
 
 
-# def objectSetPropertiesJSON(byo, object):
-#     try:
-#         byo.location = [
-#             object["Properties"]["RelativeLocation"]["X"] * 0.01,
-#             object["Properties"]["RelativeLocation"]["Y"] * -0.01,
-#             object["Properties"]["RelativeLocation"]["Z"] * 0.01
-#         ]
-#     except:
-#         pass
-#     try:
-#         byo.rotation_mode = 'XYZ'
-#         byo.rotation_euler = [
-#             radians(object["Properties"]["RelativeRotation"]["Roll"]),
-#             radians(-object["Properties"]["RelativeRotation"]["Pitch"]),
-#             radians(-object["Properties"]["RelativeRotation"]["Yaw"])
-#         ]
-#     except:
-#         pass
-#     try:
-#         byo.scale = [
-#             object["Properties"]["RelativeScale3D"]["X"],
-#             object["Properties"]["RelativeScale3D"]["Y"],
-#             object["Properties"]["RelativeScale3D"]["Z"],
-#         ]
-#     except:
-#         pass
-
-
 def objectSetProperties(byo, object):
     try:
         byo.location = [

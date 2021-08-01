@@ -3,10 +3,8 @@
 Some useful scripts & tools to be used with creating VALORANT content
 
 ### Prerequisites - IMPORTANT!
-- You need to have .NET5 installed, you can download it here. https://dotnet.microsoft.com/download/dotnet/thank-you/runtime-desktop-5.0.6-windows-x64-installer
 - Blender 2.92 or higher is needed. (Tested on 2.92 and 2.93)
 ## Extracting maps
-
 
     1 - Open "settings.ini" file using a text editor
     2 - Set the "PATH" to your VALORANT Installation
@@ -17,7 +15,7 @@ Some useful scripts & tools to be used with creating VALORANT content
     7 - Hit Run!
 
 - When you first run the script it'll export almost everything related to the game and maps, so make sure you have enough space!
-- If you do another import after running the script, it won't export them again.
+- If you do another import after running the script, it won't export them again. Just don't delete your "export" folder.
 
 
 ## Contributing & Help

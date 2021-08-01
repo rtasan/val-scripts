@@ -13,25 +13,20 @@ from time import time
 from contextlib import redirect_stdout
 from pathlib import Path
 from configparser import BasicInterpolation, ConfigParser
-from pprint import pprint
-from struct import pack
 
-# TODO FIX THE LOGGER
-# TODO FIX NODE POSITIONS
-
-
-# // ------------------------------------
-#
+# ------------------------------------
+# You can edit these
+_DEBUG = True       # Saves JSON files for manual Checking
+_APPEND = True      # Appends the umap collections if true, otherwise it'll "link"
+                    # If you want to edit each map seperately in their own .blends
+                    # make this False
 
 
-_DEBUG = True
+# ------------------------------------
+# DONT TOUCH AFTER
 
-
-# Create a new Empty scene so it doesn't fuck up the Paths
-# cur_scene = bpy.context.scene
-# bpy.ops.scene.new(type='EMPTY')
-# bpy.context.scene.name = "newscene"
-# new_context = bpy.context.scene
+# TODO Fix the logger
+# TODO Add ability to import single .umap
 
 stdout = io.StringIO()
 os.system("cls")
@@ -76,7 +71,7 @@ except NameError:
     fh.setLevel(logging.DEBUG)
     # create console handler with a higher log level
     ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
+    ch.setLevel(logging.DEBUG)
     # create formatter and add it to the handlers
     formatter = logging.Formatter('%(levelname)s - %(name)s - %(message)s')
     fh.setFormatter(formatter)
@@ -148,7 +143,7 @@ def UE4Parser(gamePath: str, aesKey: str, gameName: str = "ShooterGame", version
 
     game = FGame()
     game.UEVersion = version
-    game.GameName = gameName
+    # game.GameName = gameName
 
     provider = Provider(pak_folder=gamePath, GameInfo=game,
                         caseinsensitive=False)
@@ -181,18 +176,21 @@ def saveJSON(p: str, d):
 
 
 def checkImportable(object):
-    # Check if entity has a loadable object
     objectProperties = object["ExportValue"]
-    if object["ExportType"] == "StaticMeshComponent" or object["ExportType"] == "InstancedStaticMeshComponent":
+
+    importable_types = [
+        "StaticMeshComponent",
+        "InstancedStaticMeshComponent",
+        "HierarchicalInstancedStaticMeshComponent"]
+
+    BLACKLIST = ["NavMesh"]
+
+    # if object["ExportType"] == "StaticMeshComponent" or object["ExportType"] == "InstancedStaticMeshComponent":
+    if any(x == object["ExportType"] for x in importable_types):
         if "StaticMesh" in objectProperties:
-            if objectProperties["StaticMesh"] is not None:
-                # Ensure only Visible objects are loaded
-                if "bVisible" in objectProperties:
-                    if objectProperties["bVisible"]:
-                        return True
-                    else:
-                        return False
-                else:
+            if type(objectProperties["StaticMesh"]) is dict:
+                objName = object["ExportName"]
+                if any(y not in objName for y in BLACKLIST):
                     return True
 
 
@@ -208,11 +206,12 @@ def getObjectPath(objectProperties):
 def getFixedPath(objectProperties):
     a = CWD.joinpath("export", os.path.splitext(
         objectProperties["StaticMesh"]["OuterIndex"]["ObjectName"])[0].strip("/")).__str__()
-    return a.replace("ShooterGame\Content", "Game")
+    return a
 
 
 def getMatName(mat: dict):
-    return Path(os.path.splitext(mat["OuterIndex"]["ObjectName"])[0].strip("/")).name
+    # logger.info(mat)
+    return Path(mat["OuterIndex"]["ObjectName"]).name
 
 
 def getMatPath(mat: dict):
@@ -281,6 +280,10 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool =
     Normal_A_Map = False
     Normal_B_Map = False
 
+    P_texture = False
+
+    USE_VERTEX_COLOR = False
+
     # Blend_Power = False
 
     Diffuse_Alpha_Threshold = False
@@ -292,6 +295,7 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool =
     usesAlpha = False
 
     isEmissive = False
+    isAdditive = False
 
     if override:
         imgNodePositionX = -1900.0
@@ -316,6 +320,8 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool =
     Emissive_Mult = createNode(material=byoMAT, lookFor="RGB.004", nodeName="ShaderNodeRGB", label="Emissive_MultColor", pos=[-1100.0, 1400])
     Emissive_Color = createNode(material=byoMAT, lookFor="RGB.005", nodeName="ShaderNodeRGB", label="Emissive_Color", pos=[-1100.0, 1200])
     ML_Brightness = createNode(material=byoMAT, lookFor="RGB.006", nodeName="ShaderNodeRGB", label="ML_BrightnessColor", pos=[-900.0, 1400])
+    LM_Vertex_Color = createNode(material=byoMAT, lookFor="RGB.006", nodeName="ShaderNodeRGB", label="Lightmass-only Vertex Color", pos=[-900.0, 1200])
+    GM_color = createNode(material=byoMAT, lookFor="RGB.007", nodeName="ShaderNodeRGB", label="GM_color", pos=[-700.0, 1400])
 
     # Mix Nodes
     Diffuse_Mix = createNode(material=byoMAT, lookFor="Mix", nodeName="ShaderNodeMixRGB", label="DiffuseColorMix", pos=[-600.0, 1600])
@@ -476,6 +482,10 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool =
                     textImageNode.image.colorspace_settings.name = "Non-Color"
                     Normal_B_Map = textImageNode
 
+                elif texPROP["ParameterInfo"]["Name"] == "texture":
+                    textImageNode.image.colorspace_settings.name = "Linear"
+                    P_texture = textImageNode
+
                 else:
                     pass
                     # logger.warning(f"Found an unset TextureParameterValue: {param['ParameterInfo']['Name']}")
@@ -510,21 +520,32 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool =
                 ML_Brightness.outputs[0].default_value = getRGB(param)
                 ML_Brightness.use_custom_color = True
                 ML_Brightness.color = usedColor
+            elif param["ParameterInfo"]["Name"] == "Lightmass-only Vertex Color":
+                LM_Vertex_Color.outputs[0].default_value = getRGB(param)
+                LM_Vertex_Color.use_custom_color = True
+                LM_Vertex_Color.color = usedColor
+            elif param["ParameterInfo"]["Name"] == "color":
+                GM_color.outputs[0].default_value = getRGB(param)
+                GM_color.use_custom_color = True
+                GM_color.color = usedColor
+
             else:
-                pass
-                # logger.warning(f"Found an unset VectorParameterValue: {param['ParameterInfo']['Name']}")
+                # pass
+                logger.warning(f"Found an unset VectorParameterValue: {param['ParameterInfo']['Name']}")
 
     if "BasePropertyOverrides" in matJSON:
         if "ShadingModel" in matJSON["BasePropertyOverrides"]:
-            if matJSON["BasePropertyOverrides"]["ShadingModel"] == "MSM_Unlit":
+            if "MSM_Unlit" in matJSON["BasePropertyOverrides"]["ShadingModel"]:
                 isEmissive = True
 
         if "BlendMode" in matJSON["BasePropertyOverrides"]:
             blendMode = matJSON["BasePropertyOverrides"]["BlendMode"]
-            if "BLEND_Translucent" in blendMode  or "BLEND_Masked" in blendMode:
+            if "BLEND_Translucent" in blendMode or "BLEND_Masked" in blendMode:
                 usesAlpha = "CLIP"
                 byoMAT.blend_method = "CLIP"
                 # byoMAT.blend_method = "CLIP"
+            if "BLEND_Additive" in blendMode:
+                isAdditive = True
 
         if "OpacityMaskClipValue" in matJSON["BasePropertyOverrides"]:
             Diffuse_Alpha_Threshold = float(
@@ -596,11 +617,14 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool =
             byoMAT.node_tree.links.new(Layer_Z_Diffuse_Tint_Mix.inputs[1], Diffuse_Map.outputs["Color"])
             byoMAT.node_tree.links.new(Layer_Z_Diffuse_Tint_Mix.inputs[2], Diffuse_Color.outputs["Color"])
             byoMAT.node_tree.links.new(bsdf.inputs['Base Color'], Layer_Z_Diffuse_Tint_Mix.outputs["Color"])
-
         else:
             byoMAT.node_tree.links.new(bsdf.inputs['Base Color'], Diffuse_Map.outputs["Color"])
         if usesAlpha:
             byoMAT.node_tree.links.new(bsdf.inputs["Alpha"], Diffuse_Map.outputs["Alpha"])
+
+        if USE_VERTEX_COLOR:
+            byoMAT.node_tree.links.new(Layer_Z_Diffuse_Tint_Mix.inputs[2], LM_Vertex_Color.outputs["Color"])
+            byoMAT.node_tree.links.new(Layer_Z_Diffuse_Tint_Mix.inputs[1], Diffuse_Map.outputs["Color"])
 
     # ANCHOR Work here -------------
     if Diffuse_A_Map:
@@ -652,8 +676,16 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool =
         byoMAT.node_tree.links.new(sepRGB_RGBA_node.inputs[0], RGBA_MAP.outputs["Color"])
         byoMAT.node_tree.links.new(bsdf.inputs["Alpha"], sepRGB_RGBA_node.outputs[RGBA_MASK_COLOR])
 
+    if P_texture:
+        byoMAT.node_tree.links.new(bsdf.inputs['Base Color'], P_texture.outputs["Color"])
+        byoMAT.node_tree.links.new(bsdf.inputs["Alpha"], P_texture.outputs["Color"])
 
-def setMaterials(byo: bpy.types.Object, objectName:str, objectPath:str, object_OG: dict, object: dict, objIndex: int, JSON_Folder: Path):
+        if isAdditive:
+            byoMAT.node_tree.links.new(bsdf.inputs["Emission"], P_texture.outputs["Color"])
+            # pass
+
+
+def setMaterials(byo: bpy.types.Object, objectName: str, objectPath: str, object_OG: dict, object: dict, objIndex: int, JSON_Folder: Path):
     # logger.info(f"setMaterials() | Object : {byo.name_full}")
 
     objectProperties = object["ExportValue"]
@@ -661,17 +693,15 @@ def setMaterials(byo: bpy.types.Object, objectName:str, objectPath:str, object_O
     matFolder = JSON_Folder.joinpath("Materials")
     matFolder.mkdir(exist_ok=True)
 
-
     # saveJSON(p=JSON_Folder.joinpath(objectName + "_OG" + ".json"), d=object_OG)
 
     if "StaticMaterials" in objectProperties_OG:
         for index, mat in enumerate(objectProperties_OG["StaticMaterials"]):
-            if mat["MaterialInterface"] is not None:
+            if type(mat["MaterialInterface"]) is dict:
                 matName = getMatName(mat["MaterialInterface"])
                 # matName = mat["ImportedMaterialSlotName"]
                 if "WorldGridMaterial" not in matName:
 
-                    
                     matPath = getMatPath(mat["MaterialInterface"])
                     matPack = provider.get_package(matPath)
                     matJSON_FULL = matPack.parse_package().get_dict()
@@ -708,6 +738,7 @@ def setMaterials(byo: bpy.types.Object, objectName:str, objectPath:str, object_O
 
 
 def importObject(object, objectIndex, umapName, mainScene):
+    # logger.info(object)
     objectProperties = object["ExportValue"]
     objName = getObjectname(objectProperties)
     objPath = getFixedPath(objectProperties) + ".gltf"
@@ -727,8 +758,13 @@ def importObject(object, objectIndex, umapName, mainScene):
 
         blenderUtils.objectSetProperties(imported, objectProperties)
 
-
         objGamePath = getObjectPath(objectProperties)
+
+        # "/Engine/BasicShapes/Plane"
+        # "Engine/Content/BasicShapes/Plane"
+        if "/Engine/" in objGamePath:
+            objGamePath = objGamePath.replace("/Engine/", "Engine/Content/")
+
         objPack = provider.get_package(objGamePath)
         objJSON_OG = objPack.parse_package().get_dict()
 
@@ -742,6 +778,45 @@ def importObject(object, objectIndex, umapName, mainScene):
 
     else:
         logger.warning(f"Couldn't find Found GLTF : {objPath}")
+
+
+def createLight(object: dict, index: int, collectionName: str, lightType: str = "POINT"):
+
+    light_data = bpy.data.lights.new(name="", type=lightType)
+    light_data.energy = 1000
+
+    if lightType == "AREA":
+        light_data.shape = "RECTANGLE"
+        if "SourceWidth" in object["ExportValue"]:
+            light_data.size = object["ExportValue"]["SourceWidth"] * 0.01
+        if "SourceHeight" in object["ExportValue"]:
+            light_data.size_y = object["ExportValue"]["SourceHeight"] * 0.01
+
+    if lightType == "SPOT":
+        if "OuterConeAngle" in object["ExportValue"]:
+            light_data.spot_size = radians(object["ExportValue"]["OuterConeAngle"])
+
+    # NOTE
+    # Check these?
+    #   "SourceRadius": 38.2382,
+    #   "AttenuationRadius": 840.22626
+
+    if "Intensity" in object["ExportValue"]:
+        if "Intensity" in object["ExportValue"]:
+            light_data.energy = object["ExportValue"]["Intensity"] * 0.1
+
+    if "LightColor" in object["ExportValue"]:
+        if "LightColor" in object["ExportValue"]:
+            light_data.color = [
+                abs((object["ExportValue"]["LightColor"]["R"]) / float(255)),
+                abs((object["ExportValue"]["LightColor"]["G"]) / float(255)),
+                abs((object["ExportValue"]["LightColor"]["B"]) / float(255))
+            ]
+
+    light_object = bpy.data.objects.new(name=object["ExportName"], object_data=light_data)
+
+    blenderUtils.objectSetProperties(light_object, object["ExportValue"])
+    bpy.data.collections[collectionName].objects.link(light_object)
 
 
 @timer
@@ -774,28 +849,139 @@ def main():
         umapPKG = provider.get_package(umap)
         logger.info(f"Processing UMAP : {umapName}")
 
-        if umapPKG is not None:
-            # Use the data directly, because why not.
+        if "Lighting" in umapName:
+            if umapPKG is not None:
+                # Use the data directly, because why not.
+                umapDATA_FULL = umapPKG.parse_package().get_dict()
+                umapDATA = umapDATA_FULL["Exports"]
 
-            umapDATA_FULL = umapPKG.parse_package().get_dict()
-            umapDATA = umapDATA_FULL["Exports"]
+                # Save for debug purposes, has no use.
+                if _DEBUG:
+                    saveJSON(p=MAP_FOLDER.joinpath(umapName + ".json"), d=umapDATA_FULL)
 
-            # Save for debug purposes, has no use.
-            if _DEBUG:
-                saveJSON(p=MAP_FOLDER.joinpath(umapName + ".json"), d=umapDATA_FULL)
+                main_scene = bpy.data.scenes["Scene"]
 
-            main_scene = bpy.data.scenes["Scene"]
+                import_collection = bpy.data.collections.new(umapName)
+                main_scene.collection.children.link(import_collection)
 
-            import_collection = bpy.data.collections.new(umapName)
-            main_scene.collection.children.link(import_collection)
+                logger.info(f"Processing UMAP : {umapName}")
 
-            logger.info(f"Processing UMAP : {umapName}")
+                point_lights = bpy.data.collections.new("Point Lights")
+                rect_lights = bpy.data.collections.new("Rect Lights")
+                spot_lights = bpy.data.collections.new("Spot Lights")
 
+                import_collection.children.link(point_lights)
+                import_collection.children.link(rect_lights)
+                import_collection.children.link(spot_lights)
 
-            for objectIndex, object in enumerate(umapDATA):
-                if checkImportable(object):
-                    importObject(object, objectIndex, umapName,
-                                 main_scene)
+                for objectIndex, object in enumerate(umapDATA):
+
+                    if object["ExportType"] == "PointLightComponent":
+                        createLight(object=object, index=objectIndex, collectionName="Point Lights", lightType="POINT")
+
+                    if object["ExportType"] == "RectLightComponent":
+                        createLight(object=object, index=objectIndex, collectionName="Rect Lights", lightType="AREA")
+
+                    if object["ExportType"] == "SpotLightComponent":
+                        createLight(object=object, index=objectIndex, collectionName="Spot Lights", lightType="SPOT")
+                
+                bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", umapName).__str__() + ".blend")
+
+        elif "VFX" in umapName:
+            pass
+
+        else:
+            if umapPKG is not None:
+                # Use the data directly, because why not.
+
+                umapDATA_FULL = umapPKG.parse_package().get_dict()
+                umapDATA = umapDATA_FULL["Exports"]
+
+                # Save for debug purposes, has no use.
+                if _DEBUG:
+                    saveJSON(p=MAP_FOLDER.joinpath(umapName + ".json"), d=umapDATA_FULL)
+
+                main_scene = bpy.data.scenes["Scene"]
+
+                import_collection = bpy.data.collections.new(umapName)
+                main_scene.collection.children.link(import_collection)
+
+                logger.info(f"Processing UMAP : {umapName}")
+
+                for objectIndex, object in enumerate(umapDATA):
+                    if checkImportable(object):
+                        importObject(object, objectIndex, umapName, main_scene)
+
+            # Save umap to .blend file
+            bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", umapName).__str__() + ".blend")
+
+    blenderUtils.cleanUP()
+    bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", SELECTED_MAP.capitalize()).__str__() + ".blend")
+    # Import other .blend files back!
+    for umap in _umapList.MAPS[SELECTED_MAP]:
+        umapName = os.path.splitext(os.path.basename(umap))[0]
+        umapBlend = CWD.joinpath("export", "Scenes", umapName).__str__() + ".blend"
+
+        sec = "\\Collection\\"
+        obj = umapName
+
+        fp = umapBlend + sec + obj
+        dr = umapBlend + sec
+
+        if Path(umapBlend).exists():
+
+            if _APPEND:
+                bpy.ops.wm.append(filepath=fp, filename=obj, directory=dr)
+            else:
+                bpy.ops.wm.link(filepath=fp, filename=obj, directory=dr)
+
+    # ANCHOR
+    # Set up Skybox
+    # This is so junky omfg.
+    bpy.context.scene.render.film_transparent = True
+    worldMat = bpy.data.worlds['World']
+    worldNodeTree = worldMat.node_tree
+
+    # ANCHOR
+    # Set up Skybox
+    # This is so junky omfg.
+    bpy.context.scene.render.film_transparent = True
+    worldMat = bpy.data.worlds['World']
+    worldNodeTree = worldMat.node_tree
+
+    if SELECTED_MAP.lower() == "ascent":
+        skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_VeniceSky_DF.tga"
+    elif SELECTED_MAP.lower() == "split":
+        skyboxMapPath = r"export\Game\Environment\Bonsai\Asset\Props\Skybox\0\M0\Skybox_0_M0_DF.tga"
+    elif SELECTED_MAP.lower() == "bind":
+        # NOTE bind skybox is ugly as fuck! So I used
+        # skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_DualitySky_DF.tga"
+        skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_VeniceSky_DF.tga"
+    elif SELECTED_MAP.lower() == "icebox":
+        skyboxMapPath = r"export\Game\Environment\Port\WorldMaterials\Skydome\M1\Skydome_M1_DF.tga"
+    elif SELECTED_MAP.lower() == "breeze":
+        skyboxMapPath = r"export\Game\Environment\FoxTrot\Asset\Props\Skybox\0\M0\Skybox_0_M0_DF.tga"
+    elif SELECTED_MAP.lower() == "haven":
+        skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M3\Skybox_M3_DF.tga"
+    elif SELECTED_MAP.lower() == "menu":
+        skyboxMapPath = r"export\Game\Environment\Port\WorldMaterials\Skydome\M1\Skydome_M1_DF.tga"
+    elif SELECTED_MAP.lower() == "poveglia":
+        skyboxMapPath = r"export\Game\Environment\Port\WorldMaterials\Skydome\M1\Skydome_M1_DF.tga"
+    else:
+        skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_VeniceSky_DF.tga"
+
+    ENV_MAP = os.path.join(CWD.__str__(), skyboxMapPath)
+
+    ENV_MAP_NODE = createNode(worldMat, lookFor="Environment Texture", nodeName="ShaderNodeTexEnvironment", label="SkyboxTexture_VALORANT")
+    ENV_MAP_NODE.image = bpy.data.images.load(ENV_MAP)
+
+    BG_NODE = worldNodeTree.nodes["Background"]
+    BG_NODE.inputs["Strength"].default_value = 3
+
+    worldNodeTree.links.new(worldNodeTree.nodes["Background"].inputs['Color'], ENV_MAP_NODE.outputs["Color"])
+    worldNodeTree.links.new(worldNodeTree.nodes['World Output'].inputs['Surface'], worldNodeTree.nodes["Background"].outputs["Background"])
+
+    bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", SELECTED_MAP.capitalize()).__str__() + ".blend")
 
 
 if (2, 92, 0) > bpy.app.version:

@@ -735,9 +735,35 @@ def main():
             for objectIndex, object in enumerate(umapDATA):
                 if checkImportable(object):
                     importObject(object, objectIndex, umapName, main_scene)
+            # Save umap to .blend file
+            bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", umapName).__str__() + ".blend")
+
+    blenderUtils.cleanUP()
+    bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", SELECTED_MAP.capitalize()).__str__() + ".blend")
+    # Import other .blend files back!
+    for umap in _umapList.MAPS[SELECTED_MAP]:
+        umapName = os.path.splitext(os.path.basename(umap))[0]
+        umapBlend = CWD.joinpath("export", "Scenes", umapName).__str__() + ".blend"
+
+        sec = "\\Collection\\"
+        obj = umapName
+
+        fp = umapBlend + sec + obj
+        dr = umapBlend + sec
+
+        if Path(umapBlend).exists():
+            # bpy.ops.wm.append(filepath=fp, filename=obj, directory=dr)
+            bpy.ops.wm.link(filepath=fp, filename=obj, directory=dr)
 
 
-    
+
+    # ANCHOR
+    # Set up Skybox
+    # This is so junky omfg.
+    bpy.context.scene.render.film_transparent = True
+    worldMat = bpy.data.worlds['World']
+    worldNodeTree = worldMat.node_tree
+
     # ANCHOR
     # Set up Skybox
     # This is so junky omfg.
