@@ -91,6 +91,7 @@ try:
     from utils import common
     from utils.UE4Parse.Objects.EUEVersion import EUEVersion
     from utils.UE4Parse.provider.Provider import Provider, FGame
+    
     importlib.reload(_umapList)
     importlib.reload(blenderUtils)
     importlib.reload(common)
@@ -984,9 +985,9 @@ def main():
     bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", SELECTED_MAP.capitalize()).__str__() + ".blend")
 
 
-if (2, 92, 0) > bpy.app.version:
+if (2, 93, 0) > bpy.app.version:
     logger.warning(
-        "Your version of Blender is not supported, update to 2.92 or higher.")
+        "Your version of Blender is not supported, update to 2.93 or higher.")
     logger.warning("https://www.blender.org/download/")
 else:
     GLTF_ENABLED = addon_utils.check('io_scene_gltf2')[0]
