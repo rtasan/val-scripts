@@ -6,6 +6,7 @@ Some useful scripts & tools to be used with creating VALORANT content
 - Blender 2.92 or higher is needed. (Tested on 2.92 and 2.93)
 ## Extracting maps
 
+    0 - Download this repo, and extract to somewhere that has lots of space. 
     1 - Open "settings.ini" file using a text editor
     2 - Set the "PATH" to your VALORANT Installation
     3 - Set "MAP" to the map you want.
