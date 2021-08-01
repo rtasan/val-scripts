@@ -18,12 +18,10 @@ Some useful scripts & tools to be used with creating VALORANT content
 - When you first run the script it'll export almost everything related to the game and maps, so make sure you have enough space!
 - If you do another import after running the script, it won't export them again. Just don't delete your "export" folder.
 
-
 ## Contributing & Help
 
 You can contact me & get support through my Discord server. Tho this doesn't mean I'll always be available, so please be patient.
 Join my Discord Server : https://discord.gg/5G68gQkebb
-
 
 ### Thanks
 - floxay
