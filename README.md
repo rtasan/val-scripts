@@ -24,5 +24,6 @@ You can contact me & get support through my Discord server. Tho this doesn't mea
 Join my Discord Server : https://discord.gg/5G68gQkebb
 
 ### Thanks
+- MinshuG 
 - floxay
 - Core | Janik M.
