@@ -3,7 +3,7 @@
 Some useful scripts & tools to be used with creating VALORANT content
 
 ### Prerequisites - IMPORTANT!
-- Blender 2.92 or higher is needed. (Tested on 2.92 and 2.93)  
+- Blender 2.93 or higher is needed. (Tested on 2.93)  
 ## Extracting maps
 
     0 - Download this repo, and extract to somewhere that has lots of space. 
