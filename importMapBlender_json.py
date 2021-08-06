@@ -705,15 +705,16 @@ def setMaterials(byo: bpy.types.Object, objectName: str, objectPath: str, object
 
                     matPath = getMatPath(mat["MaterialInterface"])
                     matPack = provider.get_package(matPath)
-                    matJSON_FULL = matPack.parse_package().get_dict()
-                    if _DEBUG:
-                        saveJSON(p=matFolder.joinpath(matName + "_OG" + ".json"), d=matJSON_FULL)
-                    try:
-                        byoMAT = byo.material_slots[index].material
-                        byoMAT.name = matName
-                        setMaterial(byoMAT=byoMAT, matJSON_FULL=matJSON_FULL, override=False)
-                    except IndexError:
-                        pass
+                    if matPack is not None:
+                        matJSON_FULL = matPack.parse_package().get_dict()
+                        if _DEBUG:
+                            saveJSON(p=matFolder.joinpath(matName + "_OG" + ".json"), d=matJSON_FULL)
+                        try:
+                            byoMAT = byo.material_slots[index].material
+                            byoMAT.name = matName
+                            setMaterial(byoMAT=byoMAT, matJSON_FULL=matJSON_FULL, override=False)
+                        except IndexError:
+                            pass
 
     if "OverrideMaterials" in objectProperties:
         for index, mat in enumerate(objectProperties["OverrideMaterials"]):
