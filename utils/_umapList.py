@@ -18,6 +18,7 @@ MAPS = {
         "Ascent_Art_VistaAtk.umap",
         "Ascent_Art_VistaB.umap",
         "Ascent_Art_VistaDef.umap",
+        "Ascent_Gameplay.umap",
         "Ascent_Lighting.umap"
     ],
     "split": [
@@ -40,6 +41,7 @@ MAPS = {
         "Bonsai_Art_VistaB.umap",
         "Bonsai_Art_VistaDef.umap",
         "Bonsai_Lighting.umap",
+        "Bonsai_Gameplay.umap",
         "Bonsai_VFX.umap"
     ],
     "bind": [
@@ -61,6 +63,7 @@ MAPS = {
         "Duality_Art_TPArrivalRooms.umap",
         "Duality_Art_Vista.umap",
         "Duality_Lighting.umap",
+        "Duality_Gameplay.umap",
         "Duality_VFX.umap"
     ],
     "icebox": [
@@ -96,6 +99,7 @@ MAPS = {
         "Foxtrot_Art_Vista.umap",
         "Foxtrot_Art_VistaShip.umap",
         "Foxtrot_Art_Workshop.umap",
+        "Foxtrot_Gameplay.umap",
         "Foxtrot_Lighting.umap"
     ],
     "haven": [
@@ -115,6 +119,7 @@ MAPS = {
         "Triad_Art_Working.umap",
         "Triad_LightingDestruction.umap",
         "Triad_VFX_Destruction.umap",
+        "Triad_Gameplay.umap",
         "Triad_Lighting.umap"
 
     ],
@@ -135,6 +140,7 @@ MAPS = {
         "Range_Art_Vegetation.umap",
         "Range_Art_Vista.umap",
         "Range_Art_VTOL.umap",
+        "Range_Gameplay.umap",
         "Range_Lighting.umap",
         "Range_VFX.umap",
     ]}
