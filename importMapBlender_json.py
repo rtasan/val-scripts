@@ -18,8 +18,8 @@ from configparser import BasicInterpolation, ConfigParser
 # You can edit these
 _DEBUG = True       # Saves JSON files for manual Checking
 _APPEND = True      # Appends the umap collections if true, otherwise it'll "link"
-                    # If you want to edit each map seperately in their own .blends
-                    # make this False
+# If you want to edit each map seperately in their own .blends
+# make this False
 
 
 # ------------------------------------
@@ -91,7 +91,7 @@ try:
     from utils import common
     from utils.UE4Parse.Objects.EUEVersion import EUEVersion
     from utils.UE4Parse.provider.Provider import Provider, FGame
-    
+
     importlib.reload(_umapList)
     importlib.reload(blenderUtils)
     importlib.reload(common)
@@ -886,7 +886,7 @@ def main():
 
                     if object["ExportType"] == "SpotLightComponent":
                         createLight(object=object, index=objectIndex, collectionName="Spot Lights", lightType="SPOT")
-                
+
                 bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", umapName).__str__() + ".blend")
 
         elif "VFX" in umapName:
@@ -914,12 +914,18 @@ def main():
                     if checkImportable(object):
                         importObject(object, objectIndex, umapName, main_scene)
 
-            # Save umap to .blend file
+            # ! Utility to pack
+            # bpy.ops.file.pack_all()
+
+            # ! Save umap to .blend file
             bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", umapName).__str__() + ".blend")
 
+    # ! Clear everything
     blenderUtils.cleanUP()
+    # ! Save umap to .blend file
     bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", SELECTED_MAP.capitalize()).__str__() + ".blend")
-    # Import other .blend files back!
+
+    # ! Import other .blend files back!
     for umap in _umapList.MAPS[SELECTED_MAP]:
         umapName = os.path.splitext(os.path.basename(umap))[0]
         umapBlend = CWD.joinpath("export", "Scenes", umapName).__str__() + ".blend"
@@ -983,6 +989,7 @@ def main():
     worldNodeTree.links.new(worldNodeTree.nodes["Background"].inputs['Color'], ENV_MAP_NODE.outputs["Color"])
     worldNodeTree.links.new(worldNodeTree.nodes['World Output'].inputs['Surface'], worldNodeTree.nodes["Background"].outputs["Background"])
 
+    # ! Save umap to .blend file
     bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", SELECTED_MAP.capitalize()).__str__() + ".blend")
 
 

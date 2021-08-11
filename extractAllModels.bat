@@ -1,0 +1,1 @@
+python utils/_extractAllModels.py
