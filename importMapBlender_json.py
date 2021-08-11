@@ -826,11 +826,7 @@ def main():
     cacheCheck()
 
     global provider
-    # global prodiver
-    # mappings = MappingProvider()
     provider = UE4Parser(VAL_PAKS_PATH, VAL_KEY)
-
-    # print(provider)
 
     # Set renderer to Cycles so Eeeve doesn't scream.
     bpy.context.scene.render.engine = 'BLENDER_WORKBENCH'
