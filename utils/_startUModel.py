@@ -7,15 +7,14 @@ config = ConfigParser(interpolation=BasicInterpolation())
 config.read('settings.ini')
 
 VAL_KEY = config["VALORANT"]["UE_AES"]
-VAL_VERSION = config["VALORANT"]["UE_VERSION"]
-VAL_PATH = config["VALORANT"]["PAKS"]
+VAL_PAKS_PATH = config["VALORANT"]["PATH"] + "\live\ShooterGame\Content\Paks"
 VAL_UMODEL_EXE = os.path.join(os.getcwd(), "tools", "umodel.exe")
 
 
 def runUmodel():
     subprocess.call([
         VAL_UMODEL_EXE,
-        f"-path={VAL_PATH}",
+        f"-path={VAL_PAKS_PATH}",
         f"-game=valorant",
         f"-aes={VAL_KEY}",
     ])
