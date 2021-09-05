@@ -29,7 +29,7 @@ fracture
 range
 """
 
-# You can edit these if you what you are doing :)
+# You can edit these if you know what you are doing :)
 _TEXTURE_FORMAT = ".png"    # DDS, TGA, PNG
 _SAVE_JSONS = False         # Saves JSON files for manual Checking
 _APPEND = True              # Appends the umap collections if true, otherwise it'll "link"
