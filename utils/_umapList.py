@@ -114,7 +114,6 @@ MAPS = {
         "Triad_Art_C.umap",
         "Triad_Art_C_Destruction.umap",
         "Triad_Art_Def.umap",
-        "Triad_Art_Destruction.umap",
         "Triad_Art_Vista_Destruction.umap",
         "Triad_Art_Working.umap",
         "Triad_LightingDestruction.umap",
@@ -122,6 +121,23 @@ MAPS = {
         "Triad_Gameplay.umap",
         "Triad_Lighting.umap"
 
+    ],
+    "fracture": [
+        "Canyon_Asite.umap",
+        "Canyon_AtkPathToASite.umap",
+        "Canyon_AtkPathToBSite.umap",
+        "Canyon_AtkSpawn.umap",
+        "Canyon_BackPath.umap",
+        "Canyon_BackPathtoA.umap",
+        "Canyon_BackPathToB.umap",
+        "Canyon_BSite.umap",
+        "Canyon_BSiteTunnel.umap",
+        "Canyon_Gameplay.umap",
+        "Canyon_Lighting.umap",
+        "Canyon_Mid.umap",
+        "Canyon_MidCollider.umap",
+        "Canyon_VFX.umap",
+        "Canyon_VistaA.umap",
     ],
     "range": [
         "Range_Art_AsylumDown.umap",
@@ -143,4 +159,5 @@ MAPS = {
         "Range_Gameplay.umap",
         "Range_Lighting.umap",
         "Range_VFX.umap",
-    ]}
+    ]
+}
