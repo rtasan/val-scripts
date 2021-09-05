@@ -23,6 +23,7 @@ def cleanUP():
     for block in bpy.data.objects:
         bpy.data.objects.remove(block)
 
+    # bpy.ops.scene.new(type='EMPTY')
 
 def objectSetProperties(byo, object):
     try:
