@@ -7,7 +7,7 @@ config = ConfigParser(interpolation=BasicInterpolation())
 config.read('settings.ini')
 
 VAL_KEY = config["VALORANT"]["UE_AES"]
-VAL_PAKS_PATH = config["VALORANT"]["PATH"] + "\live\ShooterGame\Content\Paks"
+VAL_PAKS_PATH = config["VALORANT"]["PATH"]
 VAL_UMODEL_EXE = os.path.join(os.getcwd(), "tools", "umodel.exe")
 
 
