@@ -6,9 +6,7 @@ Some useful scripts & tools to be used with creating VALORANT content
 
 Extracted Maps : https://drive.google.com/drive/u/0/folders/1cWjlUmXz1-HsTYfoT4VaSSvepcDacAOi
 
-If you want to extract them yourself :
-
-### Prerequisites - IMPORTANT!
+### Extract them yourself :
 
 Blender 2.93 or higher is needed.
 
