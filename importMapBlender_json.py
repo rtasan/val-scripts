@@ -113,6 +113,9 @@ try:
 except Exception:
     traceback.print_exc()
 
+# ----------------------------------------------------------------
+# Utilities
+
 
 def timer(func):
     # This function shows the execution time of
@@ -126,34 +129,15 @@ def timer(func):
     return wrap_func
 
 
-def checkExported(f):
-    if Path(f).joinpath("exported.yo").exists():
-        return True
-    else:
-        return False
+def shorten_path(file_path, length):
+    # Split the path into separate parts, select the last
+    # 'length' elements and join them again
+    return f'..\{Path(*Path(file_path).parts[-length:])}'
 
 
-@timer
-def exportAllModels():
-    subprocess.call([CWD.joinpath("tools", "umodel.exe").__str__(),
-                     f"-path={VAL_PAKS_PATH}",
-                     f"-game=valorant",
-                     f"-aes={VAL_KEY}",
-                     "-export",
-                     "*.uasset",
-                     "-gltf",
-                     "-nooverwrite",
-                     f"-{_TEXTURE_FORMAT.replace('.', '')}",
-                     f"-out={CWD.joinpath('export').__str__()}"],
-                    stderr=subprocess.DEVNULL)
-    with open(CWD.joinpath("export", 'exported.yo').__str__(), 'w') as out_file:
-        out_file.write("")
-
-
-def readJSON(f: str):
-    with open(f, 'r') as jsonFile:
-        data = jsonFile.read()
-        return json.loads(data)
+def save_json(p: str, d):
+    with open(p, 'w') as jsonfile:
+        json.dump(d, jsonfile, indent=4)
 
 
 @timer
@@ -170,25 +154,44 @@ def UE4Parser(gamePath: str, aesKey: str, gameName: str = "ShooterGame", version
     return provider
 
 
-def cacheCheck():
+def check_exported(f: str):
+    if Path(f).joinpath("exported.yo").exists():
+        return True
+    else:
+        return False
+
+
+def check_cache():
     CWD.joinpath("export", "Scenes").mkdir(parents=True, exist_ok=True)
 
-
     # Check if everything is exported from uModel
-    if checkExported(VAL_EXPORT_FOLDER):
+    if check_exported(VAL_EXPORT_FOLDER):
         logger.info("Models are already extracted")
     else:
         logger.warning("Models are not found, starting exporting!")
+
         # Export Models
-        exportAllModels()
+        export_models()
 
 
-def saveJSON(p: str, d):
-    with open(p, 'w') as jsonfile:
-        json.dump(d, jsonfile, indent=4)
+@timer
+def export_models():
+    subprocess.call([CWD.joinpath("tools", "umodel.exe").__str__(),
+                     f"-path={VAL_PAKS_PATH}",
+                     f"-game=valorant",
+                     f"-aes={VAL_KEY}",
+                     "-export",
+                     "*.uasset",
+                     "-gltf",
+                     "-nooverwrite",
+                     f"-{_TEXTURE_FORMAT.replace('.', '')}",
+                     f"-out={CWD.joinpath('export').__str__()}"],
+                    stderr=subprocess.DEVNULL)
+    with open(CWD.joinpath("export", 'exported.yo').__str__(), 'w') as out_file:
+        out_file.write("")
 
 
-def checkImportable(object):
+def is_importable(object):
     objectProperties = object["ExportValue"]
 
     importable_types = [
@@ -201,45 +204,48 @@ def checkImportable(object):
     if any(x == object["ExportType"] for x in importable_types):
         if "StaticMesh" in objectProperties:
             if type(objectProperties["StaticMesh"]) is dict:
-                objPath = getObjectPath(objectProperties)
+                objPath = get_object_path(objectProperties)
                 for blocked in BLACKLIST:
                     if blocked in objPath.lower():
                         return False
                 return True
 
+# ----------------------------------------------------------------
+# Getters
 
-def getObjectname(objectProperties):
+
+def get_object_name(objectProperties):
     p = Path(objectProperties["StaticMesh"]["OuterIndex"]["ObjectName"]).stem
     return p
 
 
-def getObjectPath(objectProperties):
+def get_object_path(objectProperties):
     return objectProperties["StaticMesh"]["OuterIndex"]["ObjectName"]
 
 
-def getFixedPath(objectProperties):
+def get_fixed_path(objectProperties):
     a = CWD.joinpath("export", os.path.splitext(
         objectProperties["StaticMesh"]["OuterIndex"]["ObjectName"])[0].strip("/")).__str__()
     return a
 
 
-def getMatName(mat: dict):
+def get_mat_name(mat: dict):
     # logger.info(mat)
     return Path(mat["OuterIndex"]["ObjectName"]).name
 
 
-def getMatPath(mat: dict):
+def get_mat_path(mat: dict):
     return mat["OuterIndex"]["ObjectName"]
 
 
-def getFullPath(mat: dict):
+def get_math_path_full(mat: dict):
     matPath = os.path.splitext(mat["OuterIndex"]["ObjectName"])[0].strip("/")
     matPathFull = CWD.joinpath("export", matPath).__str__()
-    # matPathFull = matPathFull.replace("ShooterGame\Content", "Game")
     return matPathFull
 
+# Blender utilities
 
-def createNode(material: bpy.types.Material, lookFor: str = "", nodeName: str = "", label: str = "", pos: list = False) -> bpy.types.ShaderNode:
+def create_node(material: bpy.types.Material, lookFor: str = "", nodeName: str = "", label: str = "", pos: list = False) -> bpy.types.ShaderNode:
     # Vertex Node
 
     try:
@@ -255,7 +261,7 @@ def createNode(material: bpy.types.Material, lookFor: str = "", nodeName: str = 
     return node
 
 
-def getRGB(pa: dict) -> tuple:
+def get_rgb(pa: dict) -> tuple:
     return (
         pa["ParameterValue"]["R"],
         pa["ParameterValue"]["G"],
@@ -263,12 +269,12 @@ def getRGB(pa: dict) -> tuple:
         pa["ParameterValue"]["A"])
 
 
-def setNodePos(node: bpy.types.Node, posX, posY):
+def set_node_position(node: bpy.types.Node, posX, posY):
     node.location.x = posX
     node.location.y = posY
 
 
-def setMaterial(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool = False):
+def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool = False):
 
     matJSON = matJSON_FULL["Exports"][0]["ExportValue"]
 
@@ -318,50 +324,50 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool =
     isEmissive = False
     isAdditive = False
 
-    setNodePos(BSDF_NODE, 800, 780)
-    setNodePos(byoMAT.node_tree.nodes["Material Output"], 1100, 780)
+    set_node_position(BSDF_NODE, 800, 780)
+    set_node_position(byoMAT.node_tree.nodes["Material Output"], 1100, 780)
 
-    VERTEX_NODE = createNode(material=byoMAT, lookFor="Vertex Color", nodeName="ShaderNodeVertexColor", label="VERTEX_NODE", pos=[-1800.0, 900])
-    NORMAL_NODE = createNode(material=byoMAT, lookFor="Normal Map", nodeName="ShaderNodeNormalMap", label="NORMAL_NODE", pos=[500.0, 150.0])
+    VERTEX_NODE = create_node(material=byoMAT, lookFor="Vertex Color", nodeName="ShaderNodeVertexColor", label="VERTEX_NODE", pos=[-1800.0, 900])
+    NORMAL_NODE = create_node(material=byoMAT, lookFor="Normal Map", nodeName="ShaderNodeNormalMap", label="NORMAL_NODE", pos=[500.0, 150.0])
 
     qo = 1400.0
     usedColor = (0, 0.6, 0.03)
 
     # Color Nodes
-    DIFFUSE_COLOR_NODE = createNode(material=byoMAT, lookFor="RGB", nodeName="ShaderNodeRGB", label="DIFFUSE_COLOR_NODE", pos=[-2000.0, 1800])
+    DIFFUSE_COLOR_NODE = create_node(material=byoMAT, lookFor="RGB", nodeName="ShaderNodeRGB", label="DIFFUSE_COLOR_NODE", pos=[-2000.0, 1800])
     byoMAT.node_tree.links.new(
         BSDF_NODE.inputs["Base Color"], DIFFUSE_COLOR_NODE.outputs["Color"])
 
-    LAYER_A_TINT_COLOR_NODE = createNode(material=byoMAT, lookFor="RGB.001", nodeName="ShaderNodeRGB", label="LAYER_A_TINT_COLOR_NODE", pos=[-2000.0, 1600])
-    LAYER_B_TINT_COLOR_NODE = createNode(material=byoMAT, lookFor="RGB.002", nodeName="ShaderNodeRGB", label="LAYER_B_TINT_COLOR_NODE", pos=[-1800.0, 1800])
-    AO_COLOR_NODE = createNode(material=byoMAT, lookFor="RGB.003", nodeName="ShaderNodeRGB", label="AO_COLOR_NODE", pos=[-1800.0, 1600])
-    EMISSIVE_MULT_COLOR_NODE = createNode(material=byoMAT, lookFor="RGB.004", nodeName="ShaderNodeRGB", label="EMISSIVE_MULT_COLOR_NODE", pos=[-1600.0, 1800])
-    EMISSIVE_COLOR_NODE = createNode(material=byoMAT, lookFor="RGB.005", nodeName="ShaderNodeRGB", label="EMISSIVE_COLOR_NODE", pos=[-1600.0, 1600])
-    ML_BRIGHTNESS_COLOR_NODE = createNode(material=byoMAT, lookFor="RGB.006", nodeName="ShaderNodeRGB", label="ML_BRIGHTNESS_COLOR_NODE", pos=[-1400.0, 1800])
-    LM_VERTEX_ONLY_COLOR_NODE = createNode(material=byoMAT, lookFor="RGB.007", nodeName="ShaderNodeRGB", label="LM_VERTEX_ONLY_COLOR_NODE", pos=[-1400.0, 1600])
-    GM_COLOR_NODE = createNode(material=byoMAT, lookFor="RGB.008", nodeName="ShaderNodeRGB", label="GM_COLOR_NODE", pos=[-1200.0, 1800])
-    DIFFUSE_MULT_COLOR_NODE = createNode(material=byoMAT, lookFor="RGB.009", nodeName="ShaderNodeRGB", label="DIFFUSE_MULT_COLOR_NODE", pos=[-1200.0, 1600])
+    LAYER_A_TINT_COLOR_NODE = create_node(material=byoMAT, lookFor="RGB.001", nodeName="ShaderNodeRGB", label="LAYER_A_TINT_COLOR_NODE", pos=[-2000.0, 1600])
+    LAYER_B_TINT_COLOR_NODE = create_node(material=byoMAT, lookFor="RGB.002", nodeName="ShaderNodeRGB", label="LAYER_B_TINT_COLOR_NODE", pos=[-1800.0, 1800])
+    AO_COLOR_NODE = create_node(material=byoMAT, lookFor="RGB.003", nodeName="ShaderNodeRGB", label="AO_COLOR_NODE", pos=[-1800.0, 1600])
+    EMISSIVE_MULT_COLOR_NODE = create_node(material=byoMAT, lookFor="RGB.004", nodeName="ShaderNodeRGB", label="EMISSIVE_MULT_COLOR_NODE", pos=[-1600.0, 1800])
+    EMISSIVE_COLOR_NODE = create_node(material=byoMAT, lookFor="RGB.005", nodeName="ShaderNodeRGB", label="EMISSIVE_COLOR_NODE", pos=[-1600.0, 1600])
+    ML_BRIGHTNESS_COLOR_NODE = create_node(material=byoMAT, lookFor="RGB.006", nodeName="ShaderNodeRGB", label="ML_BRIGHTNESS_COLOR_NODE", pos=[-1400.0, 1800])
+    LM_VERTEX_ONLY_COLOR_NODE = create_node(material=byoMAT, lookFor="RGB.007", nodeName="ShaderNodeRGB", label="LM_VERTEX_ONLY_COLOR_NODE", pos=[-1400.0, 1600])
+    GM_COLOR_NODE = create_node(material=byoMAT, lookFor="RGB.008", nodeName="ShaderNodeRGB", label="GM_COLOR_NODE", pos=[-1200.0, 1800])
+    DIFFUSE_MULT_COLOR_NODE = create_node(material=byoMAT, lookFor="RGB.009", nodeName="ShaderNodeRGB", label="DIFFUSE_MULT_COLOR_NODE", pos=[-1200.0, 1600])
 
     # Mix Nodes
-    Diffuse_Mix = createNode(material=byoMAT, lookFor="Mix", nodeName="ShaderNodeMixRGB", label="DiffuseColorMix", pos=[-400.0, 1600])
+    Diffuse_Mix = create_node(material=byoMAT, lookFor="Mix", nodeName="ShaderNodeMixRGB", label="DiffuseColorMix", pos=[-400.0, 1600])
     Diffuse_Mix.blend_type = 'MIX'
 
     if Diffuse_Mix.inputs[1].links:
         byoMAT.node_tree.links.remove(Diffuse_Mix.inputs[1].links[0])
 
-    Layer_A_Diffuse_Tint_Mix = createNode(material=byoMAT, lookFor="Mix.001", nodeName="ShaderNodeMixRGB", label="Layer_A_Diffuse_Tint_Mix", pos=[-400.0, 2200])
-    Layer_B_Diffuse_Tint_Mix = createNode(material=byoMAT, lookFor="Mix.002", nodeName="ShaderNodeMixRGB", label="Layer_B_Diffuse_Tint_Mix", pos=[-400.0, 2000])
-    MinLight_Tint_Mix_NODE = createNode(material=byoMAT, lookFor="Mix.003", nodeName="ShaderNodeMixRGB", label="MinLight_Tint_Mix_NODE", pos=[-400.0, 1800])
+    Layer_A_Diffuse_Tint_Mix = create_node(material=byoMAT, lookFor="Mix.001", nodeName="ShaderNodeMixRGB", label="Layer_A_Diffuse_Tint_Mix", pos=[-400.0, 2200])
+    Layer_B_Diffuse_Tint_Mix = create_node(material=byoMAT, lookFor="Mix.002", nodeName="ShaderNodeMixRGB", label="Layer_B_Diffuse_Tint_Mix", pos=[-400.0, 2000])
+    MinLight_Tint_Mix_NODE = create_node(material=byoMAT, lookFor="Mix.003", nodeName="ShaderNodeMixRGB", label="MinLight_Tint_Mix_NODE", pos=[-400.0, 1800])
     MinLight_Tint_Mix_NODE.inputs[0].default_value = 1
     MinLight_Tint_Mix_NODE.blend_type = 'MULTIPLY'
-    NORMAL_MIX_NODE = createNode(material=byoMAT, lookFor="Mix.004", nodeName="ShaderNodeMixRGB", label="NORMAL_MIX_NODE", pos=[-400, 1600])
+    NORMAL_MIX_NODE = create_node(material=byoMAT, lookFor="Mix.004", nodeName="ShaderNodeMixRGB", label="NORMAL_MIX_NODE", pos=[-400, 1600])
     NORMAL_MIX_NODE.blend_type = 'MIX'
 
-    VERTEX_MATH_NODE = createNode(material=byoMAT, lookFor="Math", nodeName="ShaderNodeMath", label="VertexMath", pos=[-950.0, 800])
+    VERTEX_MATH_NODE = create_node(material=byoMAT, lookFor="Math", nodeName="ShaderNodeMath", label="VertexMath", pos=[-950.0, 800])
     VERTEX_MATH_NODE.operation = 'MULTIPLY'
     VERTEX_MATH_NODE.inputs[1].default_value = 6
 
-    VERTEX_MIX_NODE = createNode(material=byoMAT, lookFor="Mix.005", nodeName="ShaderNodeMixRGB", label="MixWithAlpha", pos=[-1200.0, 800])
+    VERTEX_MIX_NODE = create_node(material=byoMAT, lookFor="Mix.005", nodeName="ShaderNodeMixRGB", label="MixWithAlpha", pos=[-1200.0, 800])
     VERTEX_MIX_NODE.blend_type = 'LINEAR_LIGHT'
     VERTEX_MIX_NODE.inputs[0].default_value = 1
     VERTEX_MIX_NODE.inputs[1].default_value = WHITE_RGB
@@ -524,43 +530,43 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool =
     if "VectorParameterValues" in matJSON:
         for param in matJSON["VectorParameterValues"]:
             if param["ParameterInfo"]["Name"] == "DiffuseColor":
-                DIFFUSE_COLOR_NODE.outputs[0].default_value = getRGB(param)
+                DIFFUSE_COLOR_NODE.outputs[0].default_value = get_rgb(param)
                 DIFFUSE_COLOR_NODE.use_custom_color = True
                 DIFFUSE_COLOR_NODE.color = usedColor
             elif param["ParameterInfo"]["Name"] == "DiffuseMultColor":
-                DIFFUSE_MULT_COLOR_NODE.outputs[0].default_value = getRGB(param)
+                DIFFUSE_MULT_COLOR_NODE.outputs[0].default_value = get_rgb(param)
                 DIFFUSE_MULT_COLOR_NODE.use_custom_color = True
                 DIFFUSE_MULT_COLOR_NODE.color = usedColor
             elif param["ParameterInfo"]["Name"] == "Layer A Tint":
-                LAYER_A_TINT_COLOR_NODE.outputs[0].default_value = getRGB(param)
+                LAYER_A_TINT_COLOR_NODE.outputs[0].default_value = get_rgb(param)
                 LAYER_A_TINT_COLOR_NODE.use_custom_color = True
                 LAYER_A_TINT_COLOR_NODE.color = usedColor
             elif param["ParameterInfo"]["Name"] == "Layer B Tint":
-                LAYER_B_TINT_COLOR_NODE.outputs[0].default_value = getRGB(param)
+                LAYER_B_TINT_COLOR_NODE.outputs[0].default_value = get_rgb(param)
                 LAYER_B_TINT_COLOR_NODE.use_custom_color = True
                 LAYER_B_TINT_COLOR_NODE.color = usedColor
             elif param["ParameterInfo"]["Name"] == "AO color":
-                AO_COLOR_NODE.outputs[0].default_value = getRGB(param)
+                AO_COLOR_NODE.outputs[0].default_value = get_rgb(param)
                 AO_COLOR_NODE.use_custom_color = True
                 AO_COLOR_NODE.color = usedColor
             elif param["ParameterInfo"]["Name"] == "Emissive Mult":
-                EMISSIVE_MULT_COLOR_NODE.outputs[0].default_value = getRGB(param)
+                EMISSIVE_MULT_COLOR_NODE.outputs[0].default_value = get_rgb(param)
                 EMISSIVE_MULT_COLOR_NODE.use_custom_color = True
                 EMISSIVE_MULT_COLOR_NODE.color = usedColor
             elif param["ParameterInfo"]["Name"] == "Emissive Color":
-                EMISSIVE_COLOR_NODE.outputs[0].default_value = getRGB(param)
+                EMISSIVE_COLOR_NODE.outputs[0].default_value = get_rgb(param)
                 EMISSIVE_COLOR_NODE.use_custom_color = True
                 EMISSIVE_COLOR_NODE.color = usedColor
             elif param["ParameterInfo"]["Name"] == "Min Light Brightness Color":
-                ML_BRIGHTNESS_COLOR_NODE.outputs[0].default_value = getRGB(param)
+                ML_BRIGHTNESS_COLOR_NODE.outputs[0].default_value = get_rgb(param)
                 ML_BRIGHTNESS_COLOR_NODE.use_custom_color = True
                 ML_BRIGHTNESS_COLOR_NODE.color = usedColor
             elif param["ParameterInfo"]["Name"] == "Lightmass-only Vertex Color":
-                LM_VERTEX_ONLY_COLOR_NODE.outputs[0].default_value = getRGB(param)
+                LM_VERTEX_ONLY_COLOR_NODE.outputs[0].default_value = get_rgb(param)
                 LM_VERTEX_ONLY_COLOR_NODE.use_custom_color = True
                 LM_VERTEX_ONLY_COLOR_NODE.color = usedColor
             elif param["ParameterInfo"]["Name"] == "color":
-                GM_COLOR_NODE.outputs[0].default_value = getRGB(param)
+                GM_COLOR_NODE.outputs[0].default_value = get_rgb(param)
                 GM_COLOR_NODE.use_custom_color = True
                 GM_COLOR_NODE.color = usedColor
 
@@ -628,13 +634,13 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool =
 
     # // ------------------------------------------------------------------------
 
-    setNodePos(VERTEX_MATH_NODE, -270, 600)
-    setNodePos(VERTEX_MIX_NODE, -500, 600)
-    setNodePos(VERTEX_NODE, -800, 350)
+    set_node_position(VERTEX_MATH_NODE, -270, 600)
+    set_node_position(VERTEX_MIX_NODE, -500, 600)
+    set_node_position(VERTEX_NODE, -800, 350)
 
     if MRA_MAP:
 
-        sepRGB_MRA_node = createNode(material=byoMAT, lookFor="", nodeName="ShaderNodeSeparateRGB", label="Seperate RGB_MRA", pos=[MRA_MAP.location.x + 300, MRA_MAP.location.y])
+        sepRGB_MRA_node = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeSeparateRGB", label="Seperate RGB_MRA", pos=[MRA_MAP.location.x + 300, MRA_MAP.location.y])
         byoMAT.node_tree.links.new(sepRGB_MRA_node.inputs['Image'], MRA_MAP.outputs["Color"])
 
         # byoMAT.node_tree.links.new(BSDF_NODE.inputs['Metallic'], sepRGB_MRA_node.outputs["R"])
@@ -644,7 +650,7 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool =
         if MRA_blendToFlat:
             byoMAT.node_tree.links.new(sepRGB_MRA_node.inputs['Image'], MRA_MAP.outputs["Color"])
             # logger.warning("yoyoyoyo")
-            MRA_MIX = createNode(material=byoMAT, lookFor="asd", nodeName="ShaderNodeMixRGB", label="mix MRA", pos=[MRA_MAP.location.x + 500, MRA_MAP.location.y - 150])
+            MRA_MIX = create_node(material=byoMAT, lookFor="asd", nodeName="ShaderNodeMixRGB", label="mix MRA", pos=[MRA_MAP.location.x + 500, MRA_MAP.location.y - 150])
             MRA_MIX.inputs["Color2"].default_value = BLACK_RGB
 
             byoMAT.node_tree.links.new(MRA_MIX.inputs[0], VERTEX_NODE.outputs["Color"])
@@ -655,8 +661,8 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool =
             byoMAT.node_tree.links.new(sepRGB_MRA_node.inputs['Image'], MRA_MIX.outputs["Color"])
             byoMAT.node_tree.links.new(BSDF_NODE.inputs['Roughness'], sepRGB_MRA_node.outputs["G"])
 
-            setNodePos(MRA_MIX, -500, 300)
-            setNodePos(sepRGB_MRA_node, -270, 300)
+            set_node_position(MRA_MIX, -500, 300)
+            set_node_position(sepRGB_MRA_node, -270, 300)
         else:
             # byoMAT.node_tree.links.new(BSDF_NODE.inputs['Metallic'], sepRGB_MRA_M_node.outputs["R"])
             byoMAT.node_tree.links.new(BSDF_NODE.inputs['Roughness'], sepRGB_MRA_node.outputs["G"])
@@ -708,8 +714,8 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool =
         Layer_A_Diffuse_Tint_Mix.blend_type = "MULTIPLY"
         Layer_B_Diffuse_Tint_Mix.blend_type = "MULTIPLY"
 
-        setNodePos(Layer_A_Diffuse_Tint_Mix, -270, 1250)
-        setNodePos(Layer_B_Diffuse_Tint_Mix, -270, 890)
+        set_node_position(Layer_A_Diffuse_Tint_Mix, -270, 1250)
+        set_node_position(Layer_B_Diffuse_Tint_Mix, -270, 890)
 
         if USE_MIN_LIGHT_BRIGHTNESS_COLOR:
             MinLight_Tint_Mix_NODE.blend_type = "MULTIPLY"
@@ -718,15 +724,15 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool =
             byoMAT.node_tree.links.new(MinLight_Tint_Mix_NODE.inputs["Color2"], LM_VERTEX_ONLY_COLOR_NODE.outputs["Color"])
             byoMAT.node_tree.links.new(BSDF_NODE.inputs["Base Color"], MinLight_Tint_Mix_NODE.outputs["Color"])
 
-            setNodePos(MinLight_Tint_Mix_NODE, 280, 1000)
-            setNodePos(Diffuse_Mix, 50, 1080)
-            setNodePos(LM_VERTEX_ONLY_COLOR_NODE, 50, 820)
+            set_node_position(MinLight_Tint_Mix_NODE, 280, 1000)
+            set_node_position(Diffuse_Mix, 50, 1080)
+            set_node_position(LM_VERTEX_ONLY_COLOR_NODE, 50, 820)
 
-            setNodePos(LAYER_A_TINT_COLOR_NODE, -500, 1300)
-            setNodePos(LAYER_B_TINT_COLOR_NODE, -500, 950)
+            set_node_position(LAYER_A_TINT_COLOR_NODE, -500, 1300)
+            set_node_position(LAYER_B_TINT_COLOR_NODE, -500, 950)
 
-            setNodePos(Layer_A_Diffuse_Tint_Mix, -270, 1250)
-            setNodePos(Layer_B_Diffuse_Tint_Mix, -270, 890)
+            set_node_position(Layer_A_Diffuse_Tint_Mix, -270, 1250)
+            set_node_position(Layer_B_Diffuse_Tint_Mix, -270, 890)
 
         if USE_DIFFUSE_B_ALPHA and Diffuse_B_Map:
             byoMAT.node_tree.links.new(VERTEX_MIX_NODE.inputs[1], Diffuse_B_Map.outputs["Alpha"])
@@ -742,13 +748,13 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool =
             byoMAT.node_tree.links.new(NORMAL_MIX_NODE.inputs[2], Normal_B_Map.outputs["Color"])
             byoMAT.node_tree.links.new(NORMAL_NODE.inputs["Color"], NORMAL_MIX_NODE.outputs["Color"])
             byoMAT.node_tree.links.new(BSDF_NODE.inputs['Normal'], NORMAL_NODE.outputs['Normal'])
-            setNodePos(NORMAL_MIX_NODE, 300.0, 150.0)
+            set_node_position(NORMAL_MIX_NODE, 300.0, 150.0)
         else:
             byoMAT.node_tree.links.new(NORMAL_NODE.inputs["Color"], Normal_A_Map.outputs["Color"])
             byoMAT.node_tree.links.new(BSDF_NODE.inputs['Normal'], NORMAL_NODE.outputs['Normal'])
 
     if RGBA_MAP:
-        sepRGB_RGBA_node = createNode(material=byoMAT, lookFor="", nodeName="ShaderNodeSeparateRGB", label="Seperate RGB_RGBA", pos=[-390.0, -200])
+        sepRGB_RGBA_node = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeSeparateRGB", label="Seperate RGB_RGBA", pos=[-390.0, -200])
         byoMAT.node_tree.links.new(sepRGB_RGBA_node.inputs[0], RGBA_MAP.outputs["Color"])
         byoMAT.node_tree.links.new(BSDF_NODE.inputs["Alpha"], sepRGB_RGBA_node.outputs[RGBA_MASK_COLOR])
 
@@ -766,8 +772,8 @@ def setMaterial(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool =
     #     byoMAT.node_tree.links.new(BSDF_NODE.inputs['Normal'], NORMAL_NODE.outputs['Normal'])
 
 
-def setMaterials(byo: bpy.types.Object, objectName: str, objectPath: str, object_OG: dict, object: dict, objIndex: int, JSON_Folder: Path):
-    # logger.info(f"setMaterials() | Object : {byo.name_full}")
+def set_materials(byo: bpy.types.Object, objectName: str, objectPath: str, object_OG: dict, object: dict, objIndex: int, JSON_Folder: Path):
+    # logger.info(f"set_materials() | Object : {byo.name_full}")
 
     objectProperties = object["ExportValue"]
     objectProperties_OG = object_OG["Exports"][2]["ExportValue"]
@@ -775,24 +781,24 @@ def setMaterials(byo: bpy.types.Object, objectName: str, objectPath: str, object
         matFolder = JSON_Folder.joinpath("Materials")
         matFolder.mkdir(exist_ok=True)
 
-    # saveJSON(p=JSON_Folder.joinpath(objectName + "_OG" + ".json"), d=object_OG)
+    # save_json(p=JSON_Folder.joinpath(objectName + "_OG" + ".json"), d=object_OG)
 
     if "StaticMaterials" in objectProperties_OG:
         for index, mat in enumerate(objectProperties_OG["StaticMaterials"]):
             if type(mat["MaterialInterface"]) is dict:
-                matName = getMatName(mat["MaterialInterface"])
+                matName = get_mat_name(mat["MaterialInterface"])
                 # matName = mat["ImportedMaterialSlotName"]
                 if "WorldGridMaterial" not in matName:
-                    matPath = getMatPath(mat["MaterialInterface"])
+                    matPath = get_mat_path(mat["MaterialInterface"])
                     matPack = provider.get_package(matPath)
 
                     if matPack is not None:
                         matJSON_FULL = matPack.parse_package().get_dict()
                         if _SAVE_JSONS:
-                            saveJSON(p=matFolder.joinpath(matName + "_OG" + ".json"), d=matJSON_FULL)
+                            save_json(p=matFolder.joinpath(matName + "_OG" + ".json"), d=matJSON_FULL)
                         try:
                             byoMAT = byo.material_slots[index].material
-                            setMaterial(byoMAT=byoMAT, matJSON_FULL=matJSON_FULL, override=False)
+                            set_material(byoMAT=byoMAT, matJSON_FULL=matJSON_FULL, override=False)
                             byoMAT.name = matName + "_YO"
                         except IndexError:
                             pass
@@ -800,7 +806,7 @@ def setMaterials(byo: bpy.types.Object, objectName: str, objectPath: str, object
     if "OverrideMaterials" in objectProperties:
         for index, mat in enumerate(objectProperties["OverrideMaterials"]):
             if type(mat) is dict:
-                matPath = getMatPath(mat)
+                matPath = get_mat_path(mat)
                 matPack = provider.get_package(matPath)
                 matJSON_FULL = matPack.parse_package().get_dict()
 
@@ -809,11 +815,11 @@ def setMaterials(byo: bpy.types.Object, objectName: str, objectPath: str, object
 
                 # REVIEW
                 if _SAVE_JSONS:
-                    saveJSON(p=matFolder.joinpath(matName + "_OVR" + ".json"), d=matJSON_FULL)
+                    save_json(p=matFolder.joinpath(matName + "_OVR" + ".json"), d=matJSON_FULL)
 
                 try:
                     byoMAT = byo.material_slots[index].material
-                    setMaterial(byoMAT=byoMAT, matJSON_FULL=matJSON_FULL, override=True)
+                    set_material(byoMAT=byoMAT, matJSON_FULL=matJSON_FULL, override=True)
                     byoMAT.name = matName + "_OG"
                     # logger.info(f"[{objIndex}] : Setting Material (Override) : {matName}")
 
@@ -821,26 +827,20 @@ def setMaterials(byo: bpy.types.Object, objectName: str, objectPath: str, object
                     pass
 
 
-def shorten_path(file_path, length):
-    # Split the path into separate parts, select the last
-    # 'length' elements and join them again
-    return f'..\{Path(*Path(file_path).parts[-length:])}'
-
-
-def importObject(object, objectIndex, umapName, mainScene):
+def import_object(object, objectIndex, umap_name, mainScene):
 
     objectProperties = object["ExportValue"]
-    objName = getObjectname(objectProperties)
-    objPath = getFixedPath(objectProperties) + ".gltf"
+    objName = get_object_name(objectProperties)
+    objPath = get_fixed_path(objectProperties) + ".gltf"
 
-    crt_JSON_FOLDER = JSON_FOLDER.joinpath(umapName, objName)
+    crt_JSON_FOLDER = JSON_FOLDER.joinpath(umap_name, objName)
     crt_JSON_FOLDER.mkdir(parents=True, exist_ok=True)
 
     objCheck = bpy.data.objects.get(objName)
 
     if objCheck is None:
         if _SAVE_JSONS:
-            saveJSON(p=crt_JSON_FOLDER.joinpath(objName + ".json"), d=objectProperties)
+            save_json(p=crt_JSON_FOLDER.joinpath(objName + ".json"), d=objectProperties)
 
         if Path(objPath).exists():
             logger.info(f"[{objectIndex}] : Importing Model : {shorten_path(objPath, 4)}")
@@ -849,7 +849,7 @@ def importObject(object, objectIndex, umapName, mainScene):
 
             imported = bpy.context.active_object
             blenderUtils.objectSetProperties(imported, objectProperties)
-            objGamePath = getObjectPath(objectProperties)
+            objGamePath = get_object_path(objectProperties)
 
             # "/Engine/BasicShapes/Plane"
             # "Engine/Content/BasicShapes/Plane"
@@ -860,12 +860,12 @@ def importObject(object, objectIndex, umapName, mainScene):
             objJSON_OG = objPack.parse_package().get_dict()
 
             if _SAVE_JSONS:
-                saveJSON(p=crt_JSON_FOLDER.joinpath(objName + "_OG" + ".json"), d=objJSON_OG)
+                save_json(p=crt_JSON_FOLDER.joinpath(objName + "_OG" + ".json"), d=objJSON_OG)
 
-            setMaterials(byo=imported, objectName=objName, objectPath=objPath, object_OG=objJSON_OG, object=object, objIndex=objectIndex, JSON_Folder=crt_JSON_FOLDER)
+            set_materials(byo=imported, objectName=objName, objectPath=objPath, object_OG=objJSON_OG, object=object, objIndex=objectIndex, JSON_Folder=crt_JSON_FOLDER)
 
             # Move Object to UMAP Collection
-            bpy.data.collections[umapName].objects.link(imported)
+            bpy.data.collections[umap_name].objects.link(imported)
             mainScene.collection.objects.unlink(imported)
 
         else:
@@ -876,10 +876,10 @@ def importObject(object, objectIndex, umapName, mainScene):
         # Old Method
         new_obj = objCheck.copy()
         blenderUtils.objectSetProperties(new_obj, objectProperties)
-        bpy.data.collections[umapName].objects.link(new_obj)
+        bpy.data.collections[umap_name].objects.link(new_obj)
 
 
-def createLight(object: dict, index: int, collectionName: str, lightType: str = "POINT"):
+def create_light(object: dict, index: int, collectionName: str, lightType: str = "POINT"):
 
     light_data = bpy.data.lights.new(name="", type=lightType)
     light_data.energy = 1000
@@ -918,7 +918,7 @@ def createLight(object: dict, index: int, collectionName: str, lightType: str = 
     bpy.data.collections[collectionName].objects.link(light_object)
 
 
-def removeDuplicateMats():
+def remove_duplicate_mats():
     obj: bpy.types.Object
     matSlot: bpy.types.MaterialSlot
 
@@ -934,7 +934,7 @@ def removeDuplicateMats():
             bpy.data.materials.remove(material)
 
 
-def removeDuplicateImages():
+def remove_duplicate_lights():
     tex: bpy.types.Image
     obj: bpy.types.Object
     mat_slot: bpy.types.MaterialSlot
@@ -961,16 +961,55 @@ def removeDuplicateImages():
             bpy.data.images.remove(block)
 
 
-def filterObjects(umap_DATA) -> list:
+def filter_objects(umap_DATA) -> list:
     objects = []
     for object in umap_DATA:
-        if checkImportable(object):
+        if is_importable(object):
             objects.append(object)
     return objects
 
 
+def set_hdr(selected_map: str, texture_format: str):
+    # ANCHOR
+    # Set up Skybox
+    bpy.context.scene.render.film_transparent = True
+    worldMat = bpy.data.worlds['World']
+    worldNodeTree = worldMat.node_tree
+
+    if selected_map.lower() == "ascent":
+        skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_VeniceSky_DF" + texture_format
+    elif selected_map.lower() == "split":
+        skyboxMapPath = r"export\Game\Environment\Bonsai\Asset\Props\Skybox\0\M0\Skybox_0_M0_DF" + texture_format
+    elif selected_map.lower() == "bind":
+        # NOTE bind skybox is ugly as fuck! So I used
+        # skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_DualitySky_DF"
+        skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_VeniceSky_DF" + texture_format
+    elif selected_map.lower() == "icebox":
+        skyboxMapPath = r"export\Game\Environment\Port\WorldMaterials\Skydome\M1\Skydome_M1_DF" + texture_format
+    elif selected_map.lower() == "breeze":
+        skyboxMapPath = r"export\Game\Environment\FoxTrot\Asset\Props\Skybox\0\M0\Skybox_0_M0_DF" + texture_format
+    elif selected_map.lower() == "haven":
+        skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M3\Skybox_M3_DF" + texture_format
+    elif selected_map.lower() == "menu":
+        skyboxMapPath = r"export\Game\Environment\Port\WorldMaterials\Skydome\M1\Skydome_M1_DF" + texture_format
+    elif selected_map.lower() == "poveglia":
+        skyboxMapPath = r"export\Game\Environment\Port\WorldMaterials\Skydome\M1\Skydome_M1_DF" + texture_format
+    else:
+        skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_VeniceSky_DF" + texture_format
+
+    ENV_MAP = os.path.join(CWD.__str__(), skyboxMapPath)
+
+    ENV_MAP_NODE = create_node(worldMat, lookFor="Environment Texture", nodeName="ShaderNodeTexEnvironment", label="SkyboxTexture_VALORANT")
+    ENV_MAP_NODE.image = bpy.data.images.load(ENV_MAP)
+
+    BG_NODE = worldNodeTree.nodes["Background"]
+    BG_NODE.inputs["Strength"].default_value = 3
+
+    worldNodeTree.links.new(worldNodeTree.nodes["Background"].inputs['Color'], ENV_MAP_NODE.outputs["Color"])
+    worldNodeTree.links.new(worldNodeTree.nodes['World Output'].inputs['Surface'], worldNodeTree.nodes["Background"].outputs["Background"])
+
 @timer
-def importUMAP(umap_PKG, umap_name: str, map_folder: Path, map_type: str):
+def import_umap(umap_PKG, umap_name: str, map_folder: Path, map_type: str):
     logger.info(f"Processing UMAP : {umap_name}")
 
     if map_type is "vfx" or map_type is "object":
@@ -980,20 +1019,20 @@ def importUMAP(umap_PKG, umap_name: str, map_folder: Path, map_type: str):
         umap_DATA = umap_DATA_FULL["Exports"]
         # Save for debug purposes, has no use.
         if _SAVE_JSONS:
-            saveJSON(p=map_folder.joinpath(umap_name + ".json"), d=umap_DATA_FULL)
+            save_json(p=map_folder.joinpath(umap_name + ".json"), d=umap_DATA_FULL)
         import_collection = bpy.data.collections.new(umap_name)
         main_scene.collection.children.link(import_collection)
 
         if map_type is "object":
-            objectsToImport = filterObjects(umap_DATA)
+            objectsToImport = filter_objects(umap_DATA)
             for objectIndex, object in enumerate(objectsToImport):
-                importObject(object, objectIndex, umap_name, main_scene)
+                import_object(object, objectIndex, umap_name, main_scene)
 
         if map_type is "vfx":
             # Add support for VFX Textures
-            objectsToImport = filterObjects(umap_DATA)
+            objectsToImport = filter_objects(umap_DATA)
             for objectIndex, object in enumerate(objectsToImport):
-                importObject(object, objectIndex, umap_name, main_scene)
+                import_object(object, objectIndex, umap_name, main_scene)
 
     if map_type is "lights":
         # Use the data directly, because why not.
@@ -1002,7 +1041,7 @@ def importUMAP(umap_PKG, umap_name: str, map_folder: Path, map_type: str):
 
         # Save for debug purposes, has no use.
         if _SAVE_JSONS:
-            saveJSON(p=map_folder.joinpath(umap_name + ".json"), d=umapDATA_FULL)
+            save_json(p=map_folder.joinpath(umap_name + ".json"), d=umapDATA_FULL)
 
         main_scene = bpy.data.scenes["Scene"]
 
@@ -1020,19 +1059,16 @@ def importUMAP(umap_PKG, umap_name: str, map_folder: Path, map_type: str):
         for objectIndex, object in enumerate(umapDATA):
 
             if object["ExportType"] == "PointLightComponent":
-                createLight(object=object, index=objectIndex, collectionName="Point Lights", lightType="POINT")
+                create_light(object=object, index=objectIndex, collectionName="Point Lights", lightType="POINT")
 
             if object["ExportType"] == "RectLightComponent":
-                createLight(object=object, index=objectIndex, collectionName="Rect Lights", lightType="AREA")
+                create_light(object=object, index=objectIndex, collectionName="Rect Lights", lightType="AREA")
 
             if object["ExportType"] == "SpotLightComponent":
-                createLight(object=object, index=objectIndex, collectionName="Spot Lights", lightType="SPOT")
+                create_light(object=object, index=objectIndex, collectionName="Spot Lights", lightType="SPOT")
 
-
-#
-
-    removeDuplicateMats()
-    removeDuplicateImages()
+    remove_duplicate_mats()
+    remove_duplicate_lights()
 
     # ! Utility to pack
     if _FOR_UPLOAD:
@@ -1043,9 +1079,53 @@ def importUMAP(umap_PKG, umap_name: str, map_folder: Path, map_type: str):
         bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", umap_name).__str__() + ".blend", compress=True)
 
 
+def combine_umaps():
+
+    # ! Import other .blend files back!
+    for umap in _umapList.MAPS[SELECTED_MAP]:
+        umap_name = os.path.splitext(os.path.basename(umap))[0]
+        umap_blend_file = CWD.joinpath("export", "Scenes", umap_name).__str__() + ".blend"
+
+        sec = "\\Collection\\"
+        obj = umap_name
+
+        fp = umap_blend_file + sec + obj
+        dr = umap_blend_file + sec
+
+        if Path(umap_blend_file).exists():
+
+            if _APPEND:
+                bpy.ops.wm.append(filepath=fp, filename=obj, directory=dr)
+            else:
+                bpy.ops.wm.link(filepath=fp, filename=obj, directory=dr)
+
+
+def post_setup():
+    # After UMaps are done;
+    if not _DEBUG:
+        bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", SELECTED_MAP.capitalize()).__str__() + ".blend", compress=True)
+
+        # ! Clear everything
+        blenderUtils.cleanUP()
+
+        combine_umaps()
+
+        remove_duplicate_mats()
+        remove_duplicate_lights()
+
+        set_hdr(selected_map=SELECTED_MAP, texture_format=_TEXTURE_FORMAT)
+
+        # ! Utility to pack
+        if _FOR_UPLOAD:
+            bpy.ops.file.pack_all()
+
+        # ! Save umap to .blend file
+        bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", SELECTED_MAP.capitalize()).__str__() + ".blend", compress=True)
+
+
 @timer
 def main():
-    cacheCheck()
+    check_cache()
 
     global provider
     provider = UE4Parser(VAL_PAKS_PATH, VAL_KEY)
@@ -1055,108 +1135,28 @@ def main():
     bpy.context.scene.render.engine = 'CYCLES'
     bpy.context.scene.cycles.device = 'GPU'
 
-    # # # // --------------------------------------------------
-    # # # Blender Loop
+    # --------------------------------------------------
+    # Blender Loop
 
     MAP_FOLDER = CWD.joinpath("export", "Maps", SELECTED_MAP.capitalize())
     MAP_FOLDER.mkdir(parents=True, exist_ok=True)
 
-    for umapIndex, umap in enumerate(_umapList.MAPS[SELECTED_MAP.lower()]):
+    for umap in _umapList.MAPS[SELECTED_MAP.lower()]:
         blenderUtils.cleanUP()
 
-        umapFolderName = umap.split("_", 1)[0]
-        umapName = os.path.splitext(os.path.basename(umap))[0]
-        umapPKG = provider.get_package(umap)
+        umap_name = os.path.splitext(os.path.basename(umap))[0]
+        umap_package = provider.get_package(umap)
 
-        if umapPKG is not None:
-            if "Lighting" in umapName:
-                importUMAP(umap_PKG=umapPKG, umap_name=umapName, map_folder=MAP_FOLDER, map_type="lights")
-            elif "VFX" in umapName:
-                importUMAP(umap_PKG=umapPKG, umap_name=umapName, map_folder=MAP_FOLDER, map_type="vfx")
+        if umap_package is not None:
+            if "Lighting" in umap_name:
+                import_umap(umap_PKG=umap_package, umap_name=umap_name, map_folder=MAP_FOLDER, map_type="lights")
+            elif "VFX" in umap_name:
+                import_umap(umap_PKG=umap_package, umap_name=umap_name, map_folder=MAP_FOLDER, map_type="vfx")
             else:
-                importUMAP(umap_PKG=umapPKG, umap_name=umapName, map_folder=MAP_FOLDER, map_type="object")
+                import_umap(umap_PKG=umap_package, umap_name=umap_name, map_folder=MAP_FOLDER, map_type="object")
 
-    # After UMaps are done;
-    if not _DEBUG:
-        # ! Clear everything
-        blenderUtils.cleanUP()
-        # ! Save umap to .blend file
-        bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", SELECTED_MAP.capitalize()).__str__() + ".blend", compress=True)
-
-        # ! Import other .blend files back!
-        for umap in _umapList.MAPS[SELECTED_MAP]:
-            umapName = os.path.splitext(os.path.basename(umap))[0]
-            umapBlend = CWD.joinpath("export", "Scenes", umapName).__str__() + ".blend"
-
-            sec = "\\Collection\\"
-            obj = umapName
-
-            fp = umapBlend + sec + obj
-            dr = umapBlend + sec
-
-            if Path(umapBlend).exists():
-
-                if _APPEND:
-                    bpy.ops.wm.append(filepath=fp, filename=obj, directory=dr)
-                else:
-                    bpy.ops.wm.link(filepath=fp, filename=obj, directory=dr)
-
-        # ANCHOR
-        # Set up Skybox
-        # This is so junky omfg.
-        bpy.context.scene.render.film_transparent = True
-        worldMat = bpy.data.worlds['World']
-        worldNodeTree = worldMat.node_tree
-
-        # ANCHOR
-        # Set up Skybox
-        # This is so junky omfg.
-        bpy.context.scene.render.film_transparent = True
-        worldMat = bpy.data.worlds['World']
-        worldNodeTree = worldMat.node_tree
-
-        if SELECTED_MAP.lower() == "ascent":
-            skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_VeniceSky_DF" + _TEXTURE_FORMAT
-        elif SELECTED_MAP.lower() == "split":
-            skyboxMapPath = r"export\Game\Environment\Bonsai\Asset\Props\Skybox\0\M0\Skybox_0_M0_DF" + _TEXTURE_FORMAT
-        elif SELECTED_MAP.lower() == "bind":
-            # NOTE bind skybox is ugly as fuck! So I used
-            # skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_DualitySky_DF"
-            skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_VeniceSky_DF" + _TEXTURE_FORMAT
-        elif SELECTED_MAP.lower() == "icebox":
-            skyboxMapPath = r"export\Game\Environment\Port\WorldMaterials\Skydome\M1\Skydome_M1_DF" + _TEXTURE_FORMAT
-        elif SELECTED_MAP.lower() == "breeze":
-            skyboxMapPath = r"export\Game\Environment\FoxTrot\Asset\Props\Skybox\0\M0\Skybox_0_M0_DF" + _TEXTURE_FORMAT
-        elif SELECTED_MAP.lower() == "haven":
-            skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M3\Skybox_M3_DF" + _TEXTURE_FORMAT
-        elif SELECTED_MAP.lower() == "menu":
-            skyboxMapPath = r"export\Game\Environment\Port\WorldMaterials\Skydome\M1\Skydome_M1_DF" + _TEXTURE_FORMAT
-        elif SELECTED_MAP.lower() == "poveglia":
-            skyboxMapPath = r"export\Game\Environment\Port\WorldMaterials\Skydome\M1\Skydome_M1_DF" + _TEXTURE_FORMAT
-        else:
-            skyboxMapPath = r"export\Game\Environment\Asset\WorldMaterials\Skybox\M0\Skybox_M0_VeniceSky_DF" + _TEXTURE_FORMAT
-
-        ENV_MAP = os.path.join(CWD.__str__(), skyboxMapPath)
-
-        ENV_MAP_NODE = createNode(worldMat, lookFor="Environment Texture", nodeName="ShaderNodeTexEnvironment", label="SkyboxTexture_VALORANT")
-        ENV_MAP_NODE.image = bpy.data.images.load(ENV_MAP)
-
-        BG_NODE = worldNodeTree.nodes["Background"]
-        BG_NODE.inputs["Strength"].default_value = 3
-
-        worldNodeTree.links.new(worldNodeTree.nodes["Background"].inputs['Color'], ENV_MAP_NODE.outputs["Color"])
-        worldNodeTree.links.new(worldNodeTree.nodes['World Output'].inputs['Surface'], worldNodeTree.nodes["Background"].outputs["Background"])
-
-        # Reuse Mats : Section
-        removeDuplicateMats()
-        removeDuplicateImages()
-
-        # ! Utility to pack
-        if _FOR_UPLOAD:
-            bpy.ops.file.pack_all()
-
-        # ! Save umap to .blend file
-        bpy.ops.wm.save_as_mainfile(filepath=CWD.joinpath("export", "Scenes", SELECTED_MAP.capitalize()).__str__() + ".blend", compress=True)
+    # Create empty scene, import all umaps, remove duplicates, make skybox, pack, and save!
+    post_setup()
 
 
 if (2, 93, 0) > bpy.app.version:
