@@ -375,6 +375,10 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
     byoMAT.node_tree.links.new(VERTEX_MIX_NODE.inputs[2], VERTEX_NODE.outputs["Color"])
     byoMAT.node_tree.links.new(VERTEX_MATH_NODE.inputs[0], VERTEX_MIX_NODE.outputs["Color"])
 
+    set_node_position(VERTEX_MATH_NODE, -270, 600)
+    set_node_position(VERTEX_MIX_NODE, -500, 600)
+    set_node_position(VERTEX_NODE, -800, 350)
+
     if "ScalarParameterValues" in matJSON:
         for param in matJSON["ScalarParameterValues"]:
             if param["ParameterInfo"]["Name"] == "Mask Blend Power":
@@ -617,27 +621,6 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
                 if param["ParameterInfo"]["Name"] == "Use Min Light Brightness Color":
                     USE_MIN_LIGHT_BRIGHTNESS_COLOR = True
 
-    # if "StaticParameters" in matJSON:
-    #     if "StaticComponentMaskParameters" in matJSON:
-    #         for param in matJSON["StaticParameters"]["StaticComponentMaskParameters"]:
-    #             if param["ParameterInfo"]["Name"] == "Mask":
-    #                 if param["R"]:
-    #                     RGBA_MASK_COLOR = "R"
-    #                 if param["G"]:
-    #                     RGBA_MASK_COLOR = "G"
-    #                 if param["B"]:
-    #                     RGBA_MASK_COLOR = "B"
-    #             if param["ParameterInfo"]["Name"] == "Use Vertex Color":
-    #                 USE_VERTEX_COLOR = True
-    #             else:
-    #                 logger.warning(f"Found an unset VectorParameterValue: {param['ParameterInfo']['Name']}")
-
-    # // ------------------------------------------------------------------------
-
-    set_node_position(VERTEX_MATH_NODE, -270, 600)
-    set_node_position(VERTEX_MIX_NODE, -500, 600)
-    set_node_position(VERTEX_NODE, -800, 350)
-
     if MRA_MAP:
 
         sepRGB_MRA_node = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeSeparateRGB", label="Seperate RGB_MRA", pos=[MRA_MAP.location.x + 300, MRA_MAP.location.y])
@@ -764,12 +747,6 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
 
         if isAdditive:
             byoMAT.node_tree.links.new(BSDF_NODE.inputs["Emission"], P_texture.outputs["Color"])
-            # pass
-
-    # if Normal_A_Map:
-    #     # print(Normal_A_Map)
-    #     byoMAT.node_tree.links.new(NORMAL_NODE.inputs["Color"], Normal_A_Map.outputs["Color"])
-    #     byoMAT.node_tree.links.new(BSDF_NODE.inputs['Normal'], NORMAL_NODE.outputs['Normal'])
 
 
 def set_materials(byo: bpy.types.Object, objectName: str, objectPath: str, object_OG: dict, object: dict, objIndex: int, JSON_Folder: Path):
