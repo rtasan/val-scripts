@@ -1,5 +1,4 @@
 import traceback
-from math import *
 import io
 import subprocess
 import os
@@ -13,6 +12,8 @@ from time import time
 from contextlib import redirect_stdout
 from pathlib import Path
 from configparser import BasicInterpolation, ConfigParser
+from math import *
+
 
 # ------------------------------------
 # SELECT THE MAP
