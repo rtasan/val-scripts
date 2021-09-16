@@ -115,12 +115,16 @@ MAPS = {
         "Triad_Art_C_Destruction.umap",
         "Triad_Art_Def.umap",
         "Triad_Art_Vista_Destruction.umap",
+        "Triad_Art_Vista.umap",
         "Triad_Art_Working.umap",
         "Triad_LightingDestruction.umap",
         "Triad_VFX_Destruction.umap",
+        "Triad_Art_Birthday.umap",
+        "Triad_Art_Destruction.umap",
+        "Triad_Art_Skybox.umap",
+        "Triad_Art_Working.umap"
         "Triad_Gameplay.umap",
-        "Triad_Lighting.umap"
-
+        "Triad_Lighting.umap",
     ],
     "fracture": [
         "Canyon_Asite.umap",
