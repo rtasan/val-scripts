@@ -103,7 +103,6 @@ MAPS = {
         "Foxtrot_Lighting.umap"
     ],
     "haven": [
-        "Triad_Alt5.umap",
         "Triad_Art_A.umap",
         "Triad_Art_Atk.umap",
         "Triad_Art_AtkPathA.umap",
@@ -122,7 +121,7 @@ MAPS = {
         "Triad_Art_Birthday.umap",
         "Triad_Art_Destruction.umap",
         "Triad_Art_Skybox.umap",
-        "Triad_Art_Working.umap"
+        "Triad_Art_Working.umap",
         "Triad_Gameplay.umap",
         "Triad_Lighting.umap",
     ],

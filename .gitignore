@@ -5,12 +5,15 @@ __pycache__/
 # C extensions
 *.so
 
+bind_octane.blend
+bind_octane.blend1
 
 export/
 testing.py
 testing2.py
 
 tools/Output
+tools/fmodel_output/
 
 # Distribution / packaging
 .Python
