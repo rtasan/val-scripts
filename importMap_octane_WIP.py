@@ -38,7 +38,7 @@ range
 _TEXTURE_FORMAT = ".png"    # DDS, TGA, PNG
 _SAVE_JSONS = False         # Saves JSON files for manual Checking
 _APPEND = True              # Appends the umap collections if true, otherwise it'll "link"
-_DEBUG = True              # When active, it won't save the maps as .blend files.
+_DEBUG = False              # When active, it won't save the maps as .blend files.
 _FOR_UPLOAD = False         # True : Packs the textures inside Blender File
 _PROP_CHECK = False         # ..
 
@@ -352,8 +352,10 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
 
     VERTEX_MIX_RAMP_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctGradientTex", label="VERTEX_MIX_RAMP_NODE", pos=[-1800.0, 600])
     VERTEX_MIX_RAMP_NODE.color_ramp.elements[0].position = 0.000
-    VERTEX_MIX_RAMP_NODE.color_ramp.elements[0].position = 0.125
-
+    VERTEX_MIX_RAMP_NODE.color_ramp.elements[0].position = 0.125 # 0.25
+    NORMAL_RAMP_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctGradientTex", label="NORMAL_RAMP_NODE", pos=[-1000.0, 600])
+    NORMAL_RAMP_NODE.color_ramp.elements[0].position = 0.000
+    NORMAL_RAMP_NODE.color_ramp.elements[0].position = 0.5
 
 
     # Color Nodes
@@ -370,17 +372,19 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
 
     # Mix Nodes
     DIFFUSE_MIX_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMixTex", label="DIFFUSE_MIX_NODE", pos=[-400.0, 900])
-    LAYER_A_DIFFUSE_TINT_MIX_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMixTex", label="LAYER_A_DIFFUSE_TINT_MIX_NODE", pos=[-400.0, 750])
-    LAYER_B_DIFFUSE_TINT_MIX_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMixTex", label="LAYER_B_DIFFUSE_TINT_MIX_NODE", pos=[-400.0, 600])
+    # LAYER_A_DIFFUSE_TINT_MIX_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMixTex", label="LAYER_A_DIFFUSE_TINT_MIX_NODE", pos=[-400.0, 750])
+    # LAYER_B_DIFFUSE_TINT_MIX_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMixTex", label="LAYER_B_DIFFUSE_TINT_MIX_NODE", pos=[-400.0, 600])
+    LAYER_A_DIFFUSE_TINT_MUL_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMultiplyTex", label="LAYER_A_DIFFUSE_TINT_MUL_NODE", pos=[-400.0, 750])
+    LAYER_B_DIFFUSE_TINT_MUL_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMultiplyTex", label="LAYER_A_DIFFUSE_TINT_MUL_NODE", pos=[-400.0, 600])
     MIN_LIGHT_TINT_MIX_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMultiplyTex", label="MIN_LIGHT_TINT_MIX_NODE", pos=[-400.0, 450])
     NORMAL_MIX_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMixTex", label="NORMAL_MIX_NODE", pos=[-400, 300])
     VERTEX_MIX_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMixTex", label="VERTEX_MIX_NODE", pos=[-1500.0, 750])
 
-    byoMAT.node_tree.links.new(OCTANE_MAT.inputs[1], DIFFUSE_COLOR_NODE.outputs["OutTex"])
+    # byoMAT.node_tree.links.new(OCTANE_MAT.inputs[1], DIFFUSE_COLOR_NODE.outputs["OutTex"])
 
     # Setup Vertex Paint
-    byoMAT.node_tree.links.new(VERTEX_MIX_NODE.inputs[0], VERTEX_NODE.outputs["OutTex"])
-    byoMAT.node_tree.links.new(VERTEX_MIX_RAMP_NODE.inputs[0], VERTEX_MIX_NODE.outputs["OutTex"])
+    byoMAT.node_tree.links.new(VERTEX_MIX_NODE.inputs[2], VERTEX_NODE.outputs["OutTex"])
+    # byoMAT.node_tree.links.new(VERTEX_MIX_RAMP_NODE.inputs[0], VERTEX_MIX_NODE.outputs["OutTex"])
     byoMAT.node_tree.links.new(DIFFUSE_MIX_NODE.inputs[0], VERTEX_MIX_RAMP_NODE.outputs["OutTex"])
 
     
@@ -486,6 +490,11 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
             if Path(texPath).exists():
                 textImageNode.image = bpy.data.images.load(texPath)
                 textImageNode.label = texPROP["ParameterInfo"]["Name"]
+
+                texImageNodeAlpha.image = bpy.data.images.load(texPath)
+                texImageNodeAlpha.label = texPROP["ParameterInfo"]["Name"]+'_Alpha'
+                texImageNodeAlpha.location.x = imgNodePositionX-100
+                texImageNodeAlpha.location.y = imgNodePositionY
                 textImageNode.location.x = imgNodePositionX
                 textImageNode.location.y = imgNodePositionY
 
@@ -496,6 +505,7 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
 
                 elif texPROP["ParameterInfo"]["Name"] == "Diffuse A":
                     DIFFUSE_A_MAP = textImageNode
+                    DIFFUSE_A_MAP_ALPHA = texImageNodeAlpha
 
                 elif texPROP["ParameterInfo"]["Name"] == "Diffuse B":
                     DIFFUSE_B_MAP = textImageNode
@@ -627,148 +637,118 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
                 if param["ParameterInfo"]["Name"] == "Use Min Light Brightness Color":
                     USE_MIN_LIGHT_BRIGHTNESS_COLOR = True
 
+    if MRA_MAP:
+        MRA_R_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctChannelPickerTex", label="MRA_R", pos=[MRA_MAP.location.x + 300, MRA_MAP.location.y])
+        MRA_G_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctChannelPickerTex", label="MRA_G", pos=[MRA_MAP.location.x + 300, MRA_MAP.location.y + 500])
+        MRA_B_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctChannelPickerTex", label="MRA_B", pos=[MRA_MAP.location.x + 300, MRA_MAP.location.y + 1000])
+
+        byoMAT.node_tree.links.new(MRA_R_NODE.inputs[0], MRA_MAP.outputs["OutTex"])
+        byoMAT.node_tree.links.new(MRA_G_NODE.inputs[0], MRA_MAP.outputs["OutTex"])
+        byoMAT.node_tree.links.new(MRA_B_NODE.inputs[0], MRA_MAP.outputs["OutTex"])
+
+        # byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Metallic'], MRA_R_NODE.outputs[0]) 
+        byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Roughness'], MRA_G_NODE.outputs[0])
+        # byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Alpha'], sepRGB_MRA_node.outputs["B"]) this is not an alpha
+
+        # if MRA_blendToFlat:
+        #     byoMAT.node_tree.links.new(sepRGB_MRA_node.inputs['Image'], MRA_MAP.outputs["Color"])
+        #     # logger.warning("yoyoyoyo")
+        #     MRA_MIX = create_node(material=byoMAT, lookFor="asd", nodeName="ShaderNodeMixRGB", label="mix MRA", pos=[MRA_MAP.location.x + 500, MRA_MAP.location.y - 150])
+        #     MRA_MIX.inputs["Color2"].default_value = BLACK_RGB
+
+        #     byoMAT.node_tree.links.new(MRA_MIX.inputs[0], VERTEX_NODE.outputs["Color"])
+        #     byoMAT.node_tree.links.new(MRA_MIX.inputs['Color1'], MRA_MAP.outputs["Color"])
+        #     if MRA_MAP_B:
+        #         byoMAT.node_tree.links.new(MRA_MIX.inputs['Color2'], MRA_MAP_B.outputs["Color"])
+
+        #     byoMAT.node_tree.links.new(sepRGB_MRA_node.inputs['Image'], MRA_MIX.outputs["Color"])
+        #     byoMAT.node_tree.links.new(BSDF_NODE.inputs['Roughness'], sepRGB_MRA_node.outputs["G"])
+
+        #     set_node_position(MRA_MIX, -500, 300)
+        #     set_node_position(sepRGB_MRA_node, -270, 300)
+        # else:
+        #     # byoMAT.node_tree.links.new(BSDF_NODE.inputs['Metallic'], sepRGB_MRA_M_node.outputs["R"])
+        #     byoMAT.node_tree.links.new(BSDF_NODE.inputs['Roughness'], sepRGB_MRA_node.outputs["G"])
+        #     # byoMAT.node_tree.links.new(BSDF_NODE.inputs['Alpha'], sepRGB_MRA_M_node.outputs["B"])
+
     if DIFFUSE_MAP:
         if DIFFUSE_COLOR_NODE.use_custom_color:
-            byoMAT.node_tree.links.new(MIN_LIGHT_TINT_MIX_NODE.inputs[1], DIFFUSE_MAP.outputs["OutTex"])
-            byoMAT.node_tree.links.new(MIN_LIGHT_TINT_MIX_NODE.inputs[2], DIFFUSE_COLOR_NODE.outputs["OutTex"])
-            byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Base Color'], MIN_LIGHT_TINT_MIX_NODE.outputs["OutTex"])
+            byoMAT.node_tree.links.new(MIN_LIGHT_TINT_MIX_NODE.inputs[0], DIFFUSE_MAP.outputs["OutTex"])
+            byoMAT.node_tree.links.new(MIN_LIGHT_TINT_MIX_NODE.inputs[1], DIFFUSE_COLOR_NODE.outputs["OutTex"])
+            byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Albedo color'], MIN_LIGHT_TINT_MIX_NODE.outputs["OutTex"])
         else:
-            byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Base Color'], DIFFUSE_MAP.outputs["OutTex"])
+            byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Albedo color'], DIFFUSE_MAP.outputs["OutTex"])
         if USES_ALPHA:
             byoMAT.node_tree.links.new(OCTANE_MAT.inputs[25], DIFFUSE_MAP.outputs["OutTex"])
 
         if USE_VERTEX_COLOR:
-            byoMAT.node_tree.links.new(MIN_LIGHT_TINT_MIX_NODE.inputs[2], LM_VERTEX_ONLY_COLOR_NODE.outputs["OutTex"])
-            byoMAT.node_tree.links.new(MIN_LIGHT_TINT_MIX_NODE.inputs[1], DIFFUSE_MAP.outputs["OutTex"])
+            byoMAT.node_tree.links.new(MIN_LIGHT_TINT_MIX_NODE.inputs[1], LM_VERTEX_ONLY_COLOR_NODE.outputs["OutTex"])
+            byoMAT.node_tree.links.new(MIN_LIGHT_TINT_MIX_NODE.inputs[0], DIFFUSE_MAP.outputs["OutTex"])
 
-    # OLD SHIT
-    # if MRA_MAP:
+    if DIFFUSE_A_MAP:
 
-    #     sepRGB_MRA_node = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeSeparateRGB", label="Seperate RGB_MRA", pos=[MRA_MAP.location.x + 300, MRA_MAP.location.y])
-    #     byoMAT.node_tree.links.new(sepRGB_MRA_node.inputs['Image'], MRA_MAP.outputs["OutTex"])
+        byoMAT.node_tree.links.new(VERTEX_MIX_RAMP_NODE.inputs[0], DIFFUSE_A_MAP_ALPHA.outputs["OutTex"])
+        # Set Materials Diffuse to DiffuseMix Node
+        byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Albedo color'], DIFFUSE_MIX_NODE.outputs["OutTex"])
 
-    #     # byoMAT.node_tree.links.new(BSDF_NODE.inputs['Metallic'], sepRGB_MRA_node.outputs["R"])
-    #     byoMAT.node_tree.links.new(BSDF_NODE.inputs['Roughness'], sepRGB_MRA_node.outputs["G"])
-    #     byoMAT.node_tree.links.new(BSDF_NODE.inputs['Alpha'], sepRGB_MRA_node.outputs["B"])
+        # DiffuseColorMix Node
+        # Pass Vertex Data
+        byoMAT.node_tree.links.new(DIFFUSE_MIX_NODE.inputs[1], LAYER_A_DIFFUSE_TINT_MUL_NODE.outputs['OutTex'])        # Pass Layer 1
+        byoMAT.node_tree.links.new(DIFFUSE_MIX_NODE.inputs[2], LAYER_B_DIFFUSE_TINT_MUL_NODE.outputs["OutTex"])        # Pass Layer 2
 
-    #     if MRA_blendToFlat:
-    #         byoMAT.node_tree.links.new(sepRGB_MRA_node.inputs['Image'], MRA_MAP.outputs["OutTex"])
-    #         # logger.warning("yoyoyoyo")
-    #         MRA_MIX = create_node(material=byoMAT, lookFor="Mix Tex.006", nodeName="ShaderNodeOctMixTex", label="mix MRA", pos=[MRA_MAP.location.x + 500, MRA_MAP.location.y - 150])
-    #         MRA_MIX.inputs[2].default_value = BLACK_RGB
+        # Layer_A_Diffuse_Tint_Mix Node
+        byoMAT.node_tree.links.new(LAYER_A_DIFFUSE_TINT_MUL_NODE.inputs[0], LAYER_A_TINT_COLOR_NODE.outputs["OutTex"])
+        byoMAT.node_tree.links.new(LAYER_A_DIFFUSE_TINT_MUL_NODE.inputs[1], DIFFUSE_A_MAP.outputs["OutTex"])
 
-    #         byoMAT.node_tree.links.new(MRA_MIX.inputs[0], VERTEX_NODE.outputs["Color"])
-    #         byoMAT.node_tree.links.new(MRA_MIX.inputs['Texture1'], MRA_MAP.outputs["OutTex"])
-    #         if MRA_MAP_B:
-    #             byoMAT.node_tree.links.new(MRA_MIX.inputs['Texture2'], MRA_MAP_B.outputs["OutTex"])
+        # Layer_B_Diffuse_Tint_Mix Node
+        byoMAT.node_tree.links.new(LAYER_B_DIFFUSE_TINT_MUL_NODE.inputs[0], LAYER_B_TINT_COLOR_NODE.outputs["OutTex"])
+        if DIFFUSE_B_MAP:
+            byoMAT.node_tree.links.new(LAYER_B_DIFFUSE_TINT_MUL_NODE.inputs[1], DIFFUSE_B_MAP.outputs["OutTex"])
+        else:
+            LAYER_B_DIFFUSE_TINT_MUL_NODE.inputs[0].default_value = WHITE_RGB
 
-    #         byoMAT.node_tree.links.new(sepRGB_MRA_node.inputs['Image'], MRA_MIX.outputs["OutTex"])
-    #         byoMAT.node_tree.links.new(BSDF_NODE.inputs['Roughness'], sepRGB_MRA_node.outputs["G"])
+        # LAYER_A_DIFFUSE_TINT_MIX_NODE.inputs[0].default_value = 1
+        # LAYER_B_DIFFUSE_TINT_MIX_NODE.inputs[0].default_value = 1
 
-    #         set_node_position(MRA_MIX, -500, 300)
-    #         set_node_position(sepRGB_MRA_node, -270, 300)
-    #     else:
-    #         # byoMAT.node_tree.links.new(BSDF_NODE.inputs['Metallic'], sepRGB_MRA_M_node.outputs["R"])
-    #         byoMAT.node_tree.links.new(BSDF_NODE.inputs['Roughness'], sepRGB_MRA_node.outputs["G"])
-    #         # byoMAT.node_tree.links.new(BSDF_NODE.inputs['Alpha'], sepRGB_MRA_M_node.outputs["B"])
+        # Layer_A_Diffuse_Tint_Mix.blend_type = "MULTIPLY"
+        # Layer_B_Diffuse_Tint_Mix.blend_type = "MULTIPLY"
 
-    # if Diffuse_Map:
+        set_node_position(LAYER_A_DIFFUSE_TINT_MUL_NODE, -270, 1250)
+        set_node_position(LAYER_B_DIFFUSE_TINT_MUL_NODE, -270, 890)
 
-    #     # MinLight_Tint_Mix_NODE
+        # if USE_MIN_LIGHT_BRIGHTNESS_COLOR:
+        #     MinLight_Tint_Mix_NODE.blend_type = "MULTIPLY"
+        #     MinLight_Tint_Mix_NODE.inputs[0].default_value = 1
+        #     byoMAT.node_tree.links.new(MinLight_Tint_Mix_NODE.inputs["Color1"], DIFFUSE_MIX_NODE.outputs["OutTex"])
+        #     byoMAT.node_tree.links.new(MinLight_Tint_Mix_NODE.inputs["Color2"], LM_VERTEX_ONLY_COLOR_NODE.outputs["Color"])
+        #     byoMAT.node_tree.links.new(BSDF_NODE.inputs["Base Color"], MinLight_Tint_Mix_NODE.outputs["Color"])
 
-    #     if DIFFUSE_COLOR_NODE.use_custom_color:
-    #         byoMAT.node_tree.links.new(MinLight_Tint_Mix_NODE.inputs[1], Diffuse_Map.outputs["OutTex"])
-    #         byoMAT.node_tree.links.new(MinLight_Tint_Mix_NODE.inputs[2], DIFFUSE_COLOR_NODE.outputs["OutTex"])
-    #         byoMAT.node_tree.links.new(BSDF_NODE.inputs['Base Color'], MinLight_Tint_Mix_NODE.outputs["OutTex"])
-    #     else:
-    #         byoMAT.node_tree.links.new(BSDF_NODE.inputs['Base Color'], Diffuse_Map.outputs["OutTex"])
-    #     if usesAlpha:
-    #         byoMAT.node_tree.links.new(BSDF_NODE.inputs["Alpha"], Diffuse_Map.outputs["OutTex"])
+        #     set_node_position(MinLight_Tint_Mix_NODE, 280, 1000)
+        #     set_node_position(Diffuse_Mix, 50, 1080)
+        #     set_node_position(LM_VERTEX_ONLY_COLOR_NODE, 50, 820)
 
-    #     if USE_VERTEX_COLOR:
-    #         byoMAT.node_tree.links.new(MinLight_Tint_Mix_NODE.inputs[2], LM_VERTEX_ONLY_COLOR_NODE.outputs["OutTex"])
-    #         byoMAT.node_tree.links.new(MinLight_Tint_Mix_NODE.inputs[1], Diffuse_Map.outputs["OutTex"])
+        #     set_node_position(LAYER_A_TINT_COLOR_NODE, -500, 1300)
+        #     set_node_position(LAYER_B_TINT_COLOR_NODE, -500, 950)
 
-    # # ANCHOR Work here -------------
-    # if Diffuse_A_Map:
+        #     set_node_position(LAYER_A_DIFFUSE_TINT_MIX_NODE, -270, 1250)
+        #     set_node_position(Layer_B_Diffuse_Tint_Mix, -270, 890)
 
-    #     byoMAT.node_tree.links.new(VERTEX_MIX_NODE.inputs[1], Diffuse_A_Map.outputs["OutTex"])
-    #     # Set Materials Diffuse to DiffuseMix Node
-    #     byoMAT.node_tree.links.new(BSDF_NODE.inputs['Base Color'], Diffuse_Mix.outputs["OutTex"])
+        # if USE_DIFFUSE_B_ALPHA and Diffuse_B_Map:
+        #     byoMAT.node_tree.links.new(VERTEX_MIX_NODE.inputs[1], Diffuse_B_Map.outputs["Alpha"])
 
-    #     # DiffuseColorMix Node
-    #     # Pass Vertex Data
-    #     byoMAT.node_tree.links.new(Diffuse_Mix.inputs[0], VERTEX_MATH_NODE.outputs[0])
-    #     byoMAT.node_tree.links.new(Diffuse_Mix.inputs[1], Layer_A_Diffuse_Tint_Mix.outputs["OutTex"])        # Pass Layer 1
-    #     byoMAT.node_tree.links.new(Diffuse_Mix.inputs[2], Layer_B_Diffuse_Tint_Mix.outputs["OutTex"])        # Pass Layer 2
+    if NORMAL_MAP:
+        byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Normal'], NORMAL_MAP.outputs['OutTex'])
 
-    #     # Layer_A_Diffuse_Tint_Mix Node
-    #     byoMAT.node_tree.links.new(Layer_A_Diffuse_Tint_Mix.inputs[1], LAYER_A_TINT_COLOR_NODE.outputs["OutTex"])
-    #     byoMAT.node_tree.links.new(Layer_A_Diffuse_Tint_Mix.inputs[2], Diffuse_A_Map.outputs["OutTex"])
-
-    #     # Layer_B_Diffuse_Tint_Mix Node
-    #     byoMAT.node_tree.links.new(Layer_B_Diffuse_Tint_Mix.inputs[1], LAYER_B_TINT_COLOR_NODE.outputs["OutTex"])
-    #     if Diffuse_B_Map:
-    #         byoMAT.node_tree.links.new(Layer_B_Diffuse_Tint_Mix.inputs[2], Diffuse_B_Map.outputs["OutTex"])
-    #     else:
-    #         Layer_B_Diffuse_Tint_Mix.inputs[1].default_value = WHITE_RGB
-
-    #     Layer_A_Diffuse_Tint_Mix.inputs[0].default_value = 1
-    #     Layer_B_Diffuse_Tint_Mix.inputs[0].default_value = 1
-    #     # Layer_A_Diffuse_Tint_Mix.blend_type = "MULTIPLY"
-    #     # Layer_B_Diffuse_Tint_Mix.blend_type = "MULTIPLY"
-
-    #     set_node_position(Layer_A_Diffuse_Tint_Mix, -270, 1250)
-    #     set_node_position(Layer_B_Diffuse_Tint_Mix, -270, 890)
-
-    #     if USE_MIN_LIGHT_BRIGHTNESS_COLOR:
-    #         # MinLight_Tint_Mix_NODE.blend_type = "MULTIPLY"
-    #         MinLight_Tint_Mix_NODE.inputs[0].default_value = 1
-    #         byoMAT.node_tree.links.new(MinLight_Tint_Mix_NODE.inputs["Color1"], Diffuse_Mix.outputs["OutTex"])
-    #         byoMAT.node_tree.links.new(MinLight_Tint_Mix_NODE.inputs["Color2"], LM_VERTEX_ONLY_COLOR_NODE.outputs["OutTex"])
-    #         byoMAT.node_tree.links.new(BSDF_NODE.inputs["Base Color"], MinLight_Tint_Mix_NODE.outputs["OutTex"])
-
-    #         set_node_position(MinLight_Tint_Mix_NODE, 280, 1000)
-    #         set_node_position(Diffuse_Mix, 50, 1080)
-    #         set_node_position(LM_VERTEX_ONLY_COLOR_NODE, 50, 820)
-
-    #         set_node_position(LAYER_A_TINT_COLOR_NODE, -500, 1300)
-    #         set_node_position(LAYER_B_TINT_COLOR_NODE, -500, 950)
-
-    #         set_node_position(Layer_A_Diffuse_Tint_Mix, -270, 1250)
-    #         set_node_position(Layer_B_Diffuse_Tint_Mix, -270, 890)
-
-    #     if USE_DIFFUSE_B_ALPHA and Diffuse_B_Map:
-    #         byoMAT.node_tree.links.new(VERTEX_MIX_NODE.inputs[1], Diffuse_B_Map.outputs["OutTex"])
-
-    # if Normal_Map:
-    #     byoMAT.node_tree.links.new(NORMAL_NODE.inputs["Color"], Normal_Map.outputs["OutTex"])
-    #     byoMAT.node_tree.links.new(BSDF_NODE.inputs['Normal'], NORMAL_NODE.outputs['Normal'])
-
-    # if Normal_A_Map:
-    #     if Normal_B_Map:
-    #         byoMAT.node_tree.links.new(NORMAL_MIX_NODE.inputs[0], VERTEX_MATH_NODE.outputs[0])
-    #         byoMAT.node_tree.links.new(NORMAL_MIX_NODE.inputs[1], Normal_A_Map.outputs["OutTex"])
-    #         byoMAT.node_tree.links.new(NORMAL_MIX_NODE.inputs[2], Normal_B_Map.outputs["OutTex"])
-    #         byoMAT.node_tree.links.new(NORMAL_NODE.inputs["Color"], NORMAL_MIX_NODE.outputs["OutTex"])
-    #         byoMAT.node_tree.links.new(BSDF_NODE.inputs['Normal'], NORMAL_NODE.outputs['Normal'])
-    #         set_node_position(NORMAL_MIX_NODE, 300.0, 150.0)
-    #     else:
-    #         byoMAT.node_tree.links.new(NORMAL_NODE.inputs["Color"], Normal_A_Map.outputs["OutTex"])
-    #         byoMAT.node_tree.links.new(BSDF_NODE.inputs['Normal'], NORMAL_NODE.outputs['Normal'])
-
-    # if RGBA_MAP:
-    #     sepRGB_RGBA_node = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeSeparateRGB", label="Seperate RGB_RGBA", pos=[-390.0, -200])
-    #     byoMAT.node_tree.links.new(sepRGB_RGBA_node.inputs[0], RGBA_MAP.outputs["OutTex"])
-    #     byoMAT.node_tree.links.new(BSDF_NODE.inputs["Alpha"], sepRGB_RGBA_node.outputs[RGBA_MASK_COLOR])
-
-    # if P_texture:
-    #     byoMAT.node_tree.links.new(BSDF_NODE.inputs['Base Color'], P_texture.outputs["OutTex"])
-    #     byoMAT.node_tree.links.new(BSDF_NODE.inputs["Alpha"], P_texture.outputs["OutTex"])
-
-    #     if isAdditive:
-    #         byoMAT.node_tree.links.new(BSDF_NODE.inputs["Emission"], P_texture.outputs["OutTex"])
-
+    if NORMAL_A_MAP:
+        if NORMAL_B_MAP:
+            byoMAT.node_tree.links.new(NORMAL_RAMP_NODE.inputs[0], VERTEX_MIX_RAMP_NODE.outputs["OutTex"])
+            byoMAT.node_tree.links.new(NORMAL_MIX_NODE.inputs[0], NORMAL_RAMP_NODE.outputs[0])
+            byoMAT.node_tree.links.new(NORMAL_MIX_NODE.inputs[1], NORMAL_A_MAP.outputs["OutTex"])
+            byoMAT.node_tree.links.new(NORMAL_MIX_NODE.inputs[2], NORMAL_B_MAP.outputs["OutTex"])
+            byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Normal'], NORMAL_MIX_NODE.outputs['OutTex'])
+            set_node_position(NORMAL_MIX_NODE, 300.0, 150.0)
+        else:
+            byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Normal'], NORMAL_A_MAP.outputs['OutTex'])
 
 def set_materials(byo: bpy.types.Object, objectName: str, objectPath: str, object_OG: dict, object: dict, objIndex: int, JSON_Folder: Path):
     # logger.info(f"set_materials() | Object : {byo.name_full}")
