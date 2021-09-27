@@ -324,7 +324,7 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
 
     NORMAL_MAP = False
     NORMAL_A_MAP = False
-    NORMAL_A_MAP = False
+    NORMAL_B_MAP = False
 
     P_MAP = False
 
