@@ -347,13 +347,13 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
     # bpy.ops.node.add_node(type="ShaderNodeOctColorVertexTex", use_transform=True)
 
     # Vertex Node
-    VERTEX_NODE = create_node(material=byoMAT, lookFor="Vertex Color", nodeName="ShaderNodeOctColorVertexTex", label="VERTEX_NODE", pos=[-1800.0, 600])
+    VERTEX_NODE = create_node(material=byoMAT, lookFor="Vertex Color", nodeName="ShaderNodeOctColorVertexTex", label="VERTEX_NODE", pos=[-900, 555])
     VERTEX_NODE.inputs[0].default_value = "Col"
 
-    VERTEX_MIX_RAMP_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctGradientTex", label="VERTEX_MIX_RAMP_NODE", pos=[-1800.0, 600])
+    VERTEX_MIX_RAMP_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctGradientTex", label="VERTEX_MIX_RAMP_NODE", pos=[-330, 740])
     VERTEX_MIX_RAMP_NODE.color_ramp.elements[0].position = 0.000
     VERTEX_MIX_RAMP_NODE.color_ramp.elements[0].position = 0.125 # 0.25
-    NORMAL_RAMP_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctGradientTex", label="NORMAL_RAMP_NODE", pos=[-1000.0, 600])
+    NORMAL_RAMP_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctGradientTex", label="NORMAL_RAMP_NODE", pos=[135, 50])
     NORMAL_RAMP_NODE.color_ramp.elements[0].position = 0.000
     NORMAL_RAMP_NODE.color_ramp.elements[0].position = 0.5
 
@@ -371,14 +371,14 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
     DIFFUSE_MULT_COLOR_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctRGBSpectrumTex", label="DIFFUSE_MULT_COLOR_NODE", pos=[-1200.0, 1600])
 
     # Mix Nodes
-    DIFFUSE_MIX_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMixTex", label="DIFFUSE_MIX_NODE", pos=[-400.0, 900])
+    DIFFUSE_MIX_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMixTex", label="DIFFUSE_MIX_NODE", pos=[530, 760])
     # LAYER_A_DIFFUSE_TINT_MIX_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMixTex", label="LAYER_A_DIFFUSE_TINT_MIX_NODE", pos=[-400.0, 750])
     # LAYER_B_DIFFUSE_TINT_MIX_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMixTex", label="LAYER_B_DIFFUSE_TINT_MIX_NODE", pos=[-400.0, 600])
-    LAYER_A_DIFFUSE_TINT_MUL_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMultiplyTex", label="LAYER_A_DIFFUSE_TINT_MUL_NODE", pos=[-400.0, 750])
-    LAYER_B_DIFFUSE_TINT_MUL_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMultiplyTex", label="LAYER_A_DIFFUSE_TINT_MUL_NODE", pos=[-400.0, 600])
-    MIN_LIGHT_TINT_MIX_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMultiplyTex", label="MIN_LIGHT_TINT_MIX_NODE", pos=[-400.0, 450])
-    NORMAL_MIX_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMixTex", label="NORMAL_MIX_NODE", pos=[-400, 300])
-    VERTEX_MIX_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMixTex", label="VERTEX_MIX_NODE", pos=[-1500.0, 750])
+    LAYER_A_DIFFUSE_TINT_MUL_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMultiplyTex", label="LAYER_A_DIFFUSE_TINT_MUL_NODE", pos=[200, 920])
+    LAYER_B_DIFFUSE_TINT_MUL_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMultiplyTex", label="LAYER_B_DIFFUSE_TINT_MUL_NODE", pos=[200, 820])
+    MIN_LIGHT_TINT_MIX_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMultiplyTex", label="MIN_LIGHT_TINT_MIX_NODE", pos=[200, 1020])
+    NORMAL_MIX_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMixTex", label="NORMAL_MIX_NODE", pos=[360, -165])
+    VERTEX_MIX_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMixTex", label="VERTEX_MIX_NODE", pos=[-600, 600])
 
     # byoMAT.node_tree.links.new(OCTANE_MAT.inputs[1], DIFFUSE_COLOR_NODE.outputs["OutTex"])
 
@@ -475,7 +475,7 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
     if override:
         imgNodePositionX = -1300.0
     else:
-        imgNodePositionX = -1000.0
+        imgNodePositionX = -1300.0  # -1000.0
     if "TextureParameterValues" in matJSON:
         imgNodePositionY = 1300.0
         imgNodeMargin = 300.0
@@ -494,7 +494,7 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
 
                 texImageNodeAlpha.image = bpy.data.images.load(texPath)
                 texImageNodeAlpha.label = texPROP["ParameterInfo"]["Name"]+'_Alpha'
-                texImageNodeAlpha.location.x = imgNodePositionX-100
+                texImageNodeAlpha.location.x = imgNodePositionX-240
                 texImageNodeAlpha.location.y = imgNodePositionY
                 textImageNode.location.x = imgNodePositionX
                 textImageNode.location.y = imgNodePositionY
@@ -639,9 +639,9 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
                     USE_MIN_LIGHT_BRIGHTNESS_COLOR = True
 
     if MRA_MAP:
-        MRA_R_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctChannelPickerTex", label="MRA_R", pos=[MRA_MAP.location.x + 300, MRA_MAP.location.y])
-        MRA_G_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctChannelPickerTex", label="MRA_G", pos=[MRA_MAP.location.x + 300, MRA_MAP.location.y + 500])
-        MRA_B_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctChannelPickerTex", label="MRA_B", pos=[MRA_MAP.location.x + 300, MRA_MAP.location.y + 1000])
+        MRA_R_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctChannelPickerTex", label="MRA_R", pos=[530, 630])
+        MRA_G_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctChannelPickerTex", label="MRA_G", pos=[530, 520])
+        MRA_B_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctChannelPickerTex", label="MRA_B", pos=[530, 410])
 
         MRA_R_NODE.channel = 'OCT_CHANNEL_R'
         MRA_G_NODE.channel = 'OCT_CHANNEL_G'
@@ -687,7 +687,7 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
         else:
             byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Albedo color'], DIFFUSE_MAP.outputs["OutTex"])
         if USES_ALPHA:
-            byoMAT.node_tree.links.new(OCTANE_MAT.inputs[25], DIFFUSE_MAP.outputs["OutTex"])
+            byoMAT.node_tree.links.new(OCTANE_MAT.inputs[25], DIFFUSE_MAP_ALPHA.outputs["OutTex"])
 
         if USE_VERTEX_COLOR:
             byoMAT.node_tree.links.new(MIN_LIGHT_TINT_MIX_NODE.inputs[1], LM_VERTEX_ONLY_COLOR_NODE.outputs["OutTex"])
@@ -721,8 +721,8 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
         # Layer_A_Diffuse_Tint_Mix.blend_type = "MULTIPLY"
         # Layer_B_Diffuse_Tint_Mix.blend_type = "MULTIPLY"
 
-        set_node_position(LAYER_A_DIFFUSE_TINT_MUL_NODE, -270, 1250)
-        set_node_position(LAYER_B_DIFFUSE_TINT_MUL_NODE, -270, 890)
+        # set_node_position(LAYER_A_DIFFUSE_TINT_MUL_NODE, -270, 1250)
+        # set_node_position(LAYER_B_DIFFUSE_TINT_MUL_NODE, -270, 890)
 
         # if USE_MIN_LIGHT_BRIGHTNESS_COLOR:
         #     MinLight_Tint_Mix_NODE.blend_type = "MULTIPLY"
@@ -761,7 +761,7 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
             byoMAT.node_tree.links.new(NORMAL_FLIP_NODE.inputs[0], NORMAL_MIX_NODE.outputs['OutTex'])
             NORMAL_FLIP_NODE.inputs[2].default_value = True
             byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Normal'], NORMAL_FLIP_NODE.outputs['OutTex'])
-            set_node_position(NORMAL_MIX_NODE, 300.0, 150.0)
+            # set_node_position(NORMAL_MIX_NODE, 300.0, 150.0)
         else:
             byoMAT.node_tree.links.new(NORMAL_FLIP_NODE.inputs[0], NORMAL_A_MAP.outputs['OutTex'])
             NORMAL_FLIP_NODE.inputs[2].default_value = True
