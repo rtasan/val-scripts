@@ -383,8 +383,9 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
     # byoMAT.node_tree.links.new(OCTANE_MAT.inputs[1], DIFFUSE_COLOR_NODE.outputs["OutTex"])
 
     # Setup Vertex Paint
-    byoMAT.node_tree.links.new(VERTEX_MIX_NODE.inputs[2], VERTEX_NODE.outputs["OutTex"])
-    # byoMAT.node_tree.links.new(VERTEX_MIX_RAMP_NODE.inputs[0], VERTEX_MIX_NODE.outputs["OutTex"])
+    byoMAT.node_tree.links.new(VERTEX_MIX_NODE.inputs[0], VERTEX_NODE.outputs["OutTex"])
+    VERTEX_MIX_NODE.inputs[2].default_value = 0
+    byoMAT.node_tree.links.new(VERTEX_MIX_RAMP_NODE.inputs[0], VERTEX_MIX_NODE.outputs["OutTex"])
     byoMAT.node_tree.links.new(DIFFUSE_MIX_NODE.inputs[0], VERTEX_MIX_RAMP_NODE.outputs["OutTex"])
 
     
@@ -694,7 +695,7 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
 
     if DIFFUSE_A_MAP:
 
-        byoMAT.node_tree.links.new(VERTEX_MIX_RAMP_NODE.inputs[0], DIFFUSE_A_MAP_ALPHA.outputs["OutTex"])
+        byoMAT.node_tree.links.new(VERTEX_MIX_NODE.inputs[1], DIFFUSE_A_MAP_ALPHA.outputs["OutTex"])
         # Set Materials Diffuse to DiffuseMix Node
         byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Albedo color'], DIFFUSE_MIX_NODE.outputs["OutTex"])
 
