@@ -642,13 +642,20 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
         MRA_G_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctChannelPickerTex", label="MRA_G", pos=[MRA_MAP.location.x + 300, MRA_MAP.location.y + 500])
         MRA_B_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctChannelPickerTex", label="MRA_B", pos=[MRA_MAP.location.x + 300, MRA_MAP.location.y + 1000])
 
+        MRA_R_NODE.channel = 'OCT_CHANNEL_R'
+        MRA_G_NODE.channel = 'OCT_CHANNEL_G'
+        MRA_B_NODE.channel = 'OCT_CHANNEL_B'
+
+        
+
+
         byoMAT.node_tree.links.new(MRA_R_NODE.inputs[0], MRA_MAP.outputs["OutTex"])
         byoMAT.node_tree.links.new(MRA_G_NODE.inputs[0], MRA_MAP.outputs["OutTex"])
         byoMAT.node_tree.links.new(MRA_B_NODE.inputs[0], MRA_MAP.outputs["OutTex"])
 
-        # byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Metallic'], MRA_R_NODE.outputs[0]) 
+        byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Metallic'], MRA_R_NODE.outputs[0]) 
         byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Roughness'], MRA_G_NODE.outputs[0])
-        # byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Alpha'], sepRGB_MRA_node.outputs["B"]) this is not an alpha
+        byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Specular'], MRA_B_NODE.outputs[0])
 
         # if MRA_blendToFlat:
         #     byoMAT.node_tree.links.new(sepRGB_MRA_node.inputs['Image'], MRA_MAP.outputs["Color"])
@@ -737,18 +744,27 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
         #     byoMAT.node_tree.links.new(VERTEX_MIX_NODE.inputs[1], Diffuse_B_Map.outputs["Alpha"])
 
     if NORMAL_MAP:
-        byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Normal'], NORMAL_MAP.outputs['OutTex'])
+        NORMAL_FLIP_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctChannelInverterTex", label="NORMAL_FLIP", pos=[540,140])
+        byoMAT.node_tree.links.new(NORMAL_FLIP_NODE.inputs[0], NORMAL_MAP.outputs['OutTex'])
+        NORMAL_FLIP_NODE.inputs[2].default_value = True
+        byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Normal'], NORMAL_FLIP_NODE.outputs['OutTex'])
 
     if NORMAL_A_MAP:
+        NORMAL_FLIP_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctChannelInverterTex", label="NORMAL_FLIP", pos=[540,140])
+        
         if NORMAL_B_MAP:
             byoMAT.node_tree.links.new(NORMAL_RAMP_NODE.inputs[0], VERTEX_MIX_RAMP_NODE.outputs["OutTex"])
             byoMAT.node_tree.links.new(NORMAL_MIX_NODE.inputs[0], NORMAL_RAMP_NODE.outputs[0])
             byoMAT.node_tree.links.new(NORMAL_MIX_NODE.inputs[1], NORMAL_A_MAP.outputs["OutTex"])
             byoMAT.node_tree.links.new(NORMAL_MIX_NODE.inputs[2], NORMAL_B_MAP.outputs["OutTex"])
-            byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Normal'], NORMAL_MIX_NODE.outputs['OutTex'])
+            byoMAT.node_tree.links.new(NORMAL_FLIP_NODE.inputs[0], NORMAL_MIX_NODE.outputs['OutTex'])
+            NORMAL_FLIP_NODE.inputs[2].default_value = True
+            byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Normal'], NORMAL_FLIP_NODE.outputs['OutTex'])
             set_node_position(NORMAL_MIX_NODE, 300.0, 150.0)
         else:
-            byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Normal'], NORMAL_A_MAP.outputs['OutTex'])
+            byoMAT.node_tree.links.new(NORMAL_FLIP_NODE.inputs[0], NORMAL_A_MAP.outputs['OutTex'])
+            NORMAL_FLIP_NODE.inputs[2].default_value = True
+            byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Normal'], NORMAL_FLIP_NODE.outputs['OutTex'])
 
 def set_materials(byo: bpy.types.Object, objectName: str, objectPath: str, object_OG: dict, object: dict, objIndex: int, JSON_Folder: Path):
     # logger.info(f"set_materials() | Object : {byo.name_full}")
