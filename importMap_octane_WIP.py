@@ -624,7 +624,7 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
                 if param["ParameterInfo"]["Name"] == "Blend To Flat":
                     pass
                 if param["ParameterInfo"]["Name"] == "Blend To Flat MRA":
-                    # MRA_blendToFlat = True
+                    MRA_blendToFlat = True
                     pass
                 if param["ParameterInfo"]["Name"] == "Blend Roughness":
                     pass
@@ -655,30 +655,38 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
         byoMAT.node_tree.links.new(MRA_G_NODE.inputs[0], MRA_MAP.outputs["OutTex"])
         byoMAT.node_tree.links.new(MRA_B_NODE.inputs[0], MRA_MAP.outputs["OutTex"])
 
-        byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Metallic'], MRA_R_NODE.outputs[0]) 
-        byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Roughness'], MRA_G_NODE.outputs[0])
-        byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Specular'], MRA_B_NODE.outputs[0])
+        
 
-        # if MRA_blendToFlat:
-        #     byoMAT.node_tree.links.new(sepRGB_MRA_node.inputs['Image'], MRA_MAP.outputs["Color"])
-        #     # logger.warning("yoyoyoyo")
-        #     MRA_MIX = create_node(material=byoMAT, lookFor="asd", nodeName="ShaderNodeMixRGB", label="mix MRA", pos=[MRA_MAP.location.x + 500, MRA_MAP.location.y - 150])
-        #     MRA_MIX.inputs["Color2"].default_value = BLACK_RGB
+        if MRA_blendToFlat:
+            # byoMAT.node_tree.links.new(sepRGB_MRA_node.inputs['Image'], MRA_MAP.outputs["Color"])
+            # logger.warning("yoyoyoyo")
 
-        #     byoMAT.node_tree.links.new(MRA_MIX.inputs[0], VERTEX_NODE.outputs["Color"])
-        #     byoMAT.node_tree.links.new(MRA_MIX.inputs['Color1'], MRA_MAP.outputs["Color"])
-        #     if MRA_MAP_B:
-        #         byoMAT.node_tree.links.new(MRA_MIX.inputs['Color2'], MRA_MAP_B.outputs["Color"])
+            MRA_MIX = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctMixTex", label="MRA_MIX", pos=[210, 510])
+            MRA_MIX.inputs[2].default_value = BLACK_RGB
 
-        #     byoMAT.node_tree.links.new(sepRGB_MRA_node.inputs['Image'], MRA_MIX.outputs["Color"])
-        #     byoMAT.node_tree.links.new(BSDF_NODE.inputs['Roughness'], sepRGB_MRA_node.outputs["G"])
 
-        #     set_node_position(MRA_MIX, -500, 300)
-        #     set_node_position(sepRGB_MRA_node, -270, 300)
-        # else:
-        #     # byoMAT.node_tree.links.new(BSDF_NODE.inputs['Metallic'], sepRGB_MRA_M_node.outputs["R"])
-        #     byoMAT.node_tree.links.new(BSDF_NODE.inputs['Roughness'], sepRGB_MRA_node.outputs["G"])
-        #     # byoMAT.node_tree.links.new(BSDF_NODE.inputs['Alpha'], sepRGB_MRA_M_node.outputs["B"])
+            byoMAT.node_tree.links.new(MRA_MIX.inputs[0], VERTEX_NODE.outputs["OutTex"])
+            byoMAT.node_tree.links.new(MRA_MIX.inputs[1], MRA_MAP.outputs["OutTex"])
+
+            if MRA_MAP_B:
+                byoMAT.node_tree.links.new(MRA_MIX.inputs[2], MRA_MAP_B.outputs["OutTex"])
+
+            byoMAT.node_tree.links.new(MRA_R_NODE.inputs[0], MRA_MIX.outputs["OutTex"])
+            byoMAT.node_tree.links.new(MRA_G_NODE.inputs[0], MRA_MIX.outputs["OutTex"])
+            byoMAT.node_tree.links.new(MRA_B_NODE.inputs[0], MRA_MIX.outputs["OutTex"])
+
+            # byoMAT.node_tree.links.new(BSDF_NODE.inputs['Roughness'], sepRGB_MRA_node.outputs["G"])
+            byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Metallic'], MRA_R_NODE.outputs[0]) 
+            byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Roughness'], MRA_G_NODE.outputs[0])
+            byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Specular'], MRA_B_NODE.outputs[0])
+
+            # set_node_position(MRA_MIX, -500, 300)
+            # set_node_position(sepRGB_MRA_node, -270, 300)
+
+        else:
+            byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Metallic'], MRA_R_NODE.outputs[0]) 
+            byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Roughness'], MRA_G_NODE.outputs[0])
+            byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Specular'], MRA_B_NODE.outputs[0])
 
     if DIFFUSE_MAP:
         if DIFFUSE_COLOR_NODE.use_custom_color:
