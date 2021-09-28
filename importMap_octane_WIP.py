@@ -503,6 +503,7 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
 
                 if texPROP["ParameterInfo"]["Name"] == "Diffuse":
                     DIFFUSE_MAP = textImageNode
+                    DIFFUSE_MAP_ALPHA = texImageNodeAlpha
 
                 elif texPROP["ParameterInfo"]["Name"] == "Diffuse A":
                     DIFFUSE_A_MAP = textImageNode
@@ -510,7 +511,7 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
 
                 elif texPROP["ParameterInfo"]["Name"] == "Diffuse B":
                     DIFFUSE_B_MAP = textImageNode
-
+                    DIFFUSE_B_MAP_ALPHA = texImageNodeAlpha
                 elif texPROP["ParameterInfo"]["Name"] == "Diffuse B Low":
                     DIFFUSE_B_LOW_MAP = textImageNode
 
@@ -741,17 +742,17 @@ def set_material(byoMAT: bpy.types.Material, matJSON_FULL: dict, override: bool 
         #     set_node_position(LAYER_A_DIFFUSE_TINT_MIX_NODE, -270, 1250)
         #     set_node_position(Layer_B_Diffuse_Tint_Mix, -270, 890)
 
-        # if USE_DIFFUSE_B_ALPHA and Diffuse_B_Map:
-        #     byoMAT.node_tree.links.new(VERTEX_MIX_NODE.inputs[1], Diffuse_B_Map.outputs["Alpha"])
+        if USE_DIFFUSE_B_ALPHA and DIFFUSE_B_MAP:
+            byoMAT.node_tree.links.new(VERTEX_MIX_NODE.inputs[1], DIFFUSE_B_MAP_ALPHA.outputs["OutTex"])
 
     if NORMAL_MAP:
-        NORMAL_FLIP_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctChannelInverterTex", label="NORMAL_FLIP", pos=[540,140])
+        NORMAL_FLIP_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctChannelInverterTex", label="NORMAL_FLIP", pos=[580,-140])
         byoMAT.node_tree.links.new(NORMAL_FLIP_NODE.inputs[0], NORMAL_MAP.outputs['OutTex'])
         NORMAL_FLIP_NODE.inputs[2].default_value = True
         byoMAT.node_tree.links.new(OCTANE_MAT.inputs['Normal'], NORMAL_FLIP_NODE.outputs['OutTex'])
 
     if NORMAL_A_MAP:
-        NORMAL_FLIP_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctChannelInverterTex", label="NORMAL_FLIP", pos=[540,140])
+        NORMAL_FLIP_NODE = create_node(material=byoMAT, lookFor="", nodeName="ShaderNodeOctChannelInverterTex", label="NORMAL_FLIP", pos=[580,-140])
         
         if NORMAL_B_MAP:
             byoMAT.node_tree.links.new(NORMAL_RAMP_NODE.inputs[0], VERTEX_MIX_RAMP_NODE.outputs["OutTex"])
